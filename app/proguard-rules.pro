@@ -1,0 +1,3 @@
+-keep class com.loanmate.** { *; }
+-keepattributes *Annotation*
+-dontwarn okhttp3.**

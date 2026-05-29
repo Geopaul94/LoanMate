@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Bank/loan icon: simple building shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20 L20,40 L88,40 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,44 L26,76 L34,76 L34,44 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,44 L46,76 L62,76 L62,44 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M74,44 L74,76 L82,76 L82,44 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,78 L90,78 L90,86 L18,86 Z" />
+</vector>
