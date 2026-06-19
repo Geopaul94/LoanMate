@@ -11,6 +11,12 @@ interface AchievementDao {
     @Query("SELECT * FROM achievements ORDER BY earnedAt DESC")
     fun getAllAchievements(): Flow<List<AchievementEntity>>
 
+    @Query("SELECT * FROM achievements")
+    suspend fun getAllAchievementsOnce(): List<AchievementEntity>
+
+    @Query("DELETE FROM achievements")
+    suspend fun deleteAllAchievements()
+
     @Query("SELECT * FROM achievements WHERE isEarned = 1")
     fun getEarnedAchievements(): Flow<List<AchievementEntity>>
 

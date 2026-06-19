@@ -13,6 +13,12 @@ interface PaymentHistoryDao {
     @Query("SELECT * FROM payment_history ORDER BY paidDate DESC")
     fun getAllPaymentsNewestFirst(): Flow<List<PaymentHistoryEntity>>
 
+    @Query("SELECT * FROM payment_history")
+    suspend fun getAllPaymentsOnce(): List<PaymentHistoryEntity>
+
+    @Query("DELETE FROM payment_history")
+    suspend fun deleteAllPayments()
+
     @Query("SELECT COUNT(*) FROM payment_history")
     suspend fun getTotalPaymentCount(): Int
 
