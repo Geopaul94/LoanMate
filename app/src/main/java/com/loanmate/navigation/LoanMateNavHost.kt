@@ -1,6 +1,7 @@
 package com.loanmate.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -13,17 +14,31 @@ import com.loanmate.ui.analytics.AnalyticsScreen
 import com.loanmate.ui.settings.SettingsScreen
 import com.loanmate.ui.achievements.AchievementsScreen
 
+const val SAVED_STATE_DELETED_LOAN_ID = "deletedLoanId"
+
 @Composable
-fun LoanMateNavHost(navController: NavHostController) {
+fun LoanMateNavHost(
+    navController: NavHostController,
+    deepLinkLoanId: Long? = null,
+    onDeepLinkConsumed: () -> Unit = {}
+) {
+    LaunchedEffect(deepLinkLoanId) {
+        if (deepLinkLoanId != null) {
+            navController.navigate(Screen.LoanDetails.createRoute(deepLinkLoanId))
+            onDeepLinkConsumed()
+        }
+    }
+
     NavHost(navController = navController, startDestination = Screen.Dashboard.route) {
 
-        composable(Screen.Dashboard.route) {
+        composable(Screen.Dashboard.route) { backStackEntry ->
             DashboardScreen(
                 onAddLoan = { navController.navigate(Screen.AddLoan.createRoute()) },
                 onLoanClick = { loanId -> navController.navigate(Screen.LoanDetails.createRoute(loanId)) },
                 onAnalytics = { navController.navigate(Screen.Analytics.route) },
                 onSettings = { navController.navigate(Screen.Settings.route) },
-                onAchievements = { navController.navigate(Screen.Achievements.route) }
+                onAchievements = { navController.navigate(Screen.Achievements.route) },
+                savedStateHandle = backStackEntry.savedStateHandle
             )
         }
 
@@ -49,7 +64,13 @@ fun LoanMateNavHost(navController: NavHostController) {
             LoanDetailsScreen(
                 loanId = loanId,
                 onBack = { navController.popBackStack() },
-                onEdit = { navController.navigate(Screen.AddLoan.createRoute(loanId)) }
+                onEdit = { navController.navigate(Screen.AddLoan.createRoute(loanId)) },
+                onDeleted = { id ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(SAVED_STATE_DELETED_LOAN_ID, id)
+                    navController.popBackStack()
+                }
             )
         }
 

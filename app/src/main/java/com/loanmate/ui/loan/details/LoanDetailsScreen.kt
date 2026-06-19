@@ -34,6 +34,7 @@ fun LoanDetailsScreen(
     loanId: Long,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onDeleted: (Long) -> Unit,
     viewModel: LoanDetailsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -41,7 +42,7 @@ fun LoanDetailsScreen(
 
     LaunchedEffect(loanId) { viewModel.loadLoan(loanId) }
     LaunchedEffect(Unit) {
-        viewModel.deleteEvent.collect { onBack() }
+        viewModel.deleteEvent.collect { id -> onDeleted(id) }
     }
 
     val loan = uiState.loan

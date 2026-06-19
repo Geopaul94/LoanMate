@@ -17,7 +17,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): LoanDatabase =
-        Room.databaseBuilder(context, LoanDatabase::class.java, "loanmate.db").build()
+        Room.databaseBuilder(context, LoanDatabase::class.java, "loanmate.db")
+            .addMigrations(LoanDatabase.MIGRATION_1_2)
+            .build()
 
     @Provides fun provideLoanDao(db: LoanDatabase) = db.loanDao()
     @Provides fun providePaymentDao(db: LoanDatabase) = db.paymentHistoryDao()

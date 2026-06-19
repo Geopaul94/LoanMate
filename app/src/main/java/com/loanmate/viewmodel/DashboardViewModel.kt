@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.loanmate.data.local.LoanEntity
 import com.loanmate.data.model.LoanStatus
 import com.loanmate.data.repository.LoanRepository
+import com.loanmate.utils.EmiCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class DashboardUiState(
@@ -16,6 +18,7 @@ data class DashboardUiState(
     val totalMonthlyEmi: Double = 0.0,
     val completedLoansCount: Int = 0,
     val searchQuery: String = "",
+    val debtFreeDate: Long? = null,
     val isLoading: Boolean = true
 )
 
@@ -27,7 +30,6 @@ class DashboardViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
 
-    // Combine summary metrics into a single flow to avoid 5-arg combine type issues
     private val summaryFlow = combine(
         loanRepository.getActiveLoanCount(),
         loanRepository.getTotalOutstanding(),
@@ -46,6 +48,9 @@ class DashboardViewModel @Inject constructor(
             it.loanName.contains(query, ignoreCase = true) ||
                     it.bankName.contains(query, ignoreCase = true)
         }
+        val debtFreeDate = loans
+            .filter { it.status == LoanStatus.ACTIVE }
+            .maxOfOrNull { EmiCalculator.projectLoanEndDate(it.firstEmiDate, it.completedEmis, it.totalEmis) }
         DashboardUiState(
             loans = filtered,
             activeLoanCount = activeCount,
@@ -53,11 +58,16 @@ class DashboardViewModel @Inject constructor(
             totalMonthlyEmi = monthlyEmi,
             completedLoansCount = loans.count { it.status == LoanStatus.COMPLETED },
             searchQuery = query,
+            debtFreeDate = debtFreeDate,
             isLoading = false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardUiState())
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+    }
+
+    fun restoreLoan(loanId: Long) {
+        viewModelScope.launch { loanRepository.restoreLoan(loanId) }
     }
 }

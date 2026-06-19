@@ -30,5 +30,12 @@ class LoanRepository @Inject constructor(private val loanDao: LoanDao) {
 
     suspend fun updateLoan(loan: LoanEntity) = loanDao.updateLoan(loan)
 
-    suspend fun deleteLoan(loan: LoanEntity) = loanDao.deleteLoan(loan)
+    // Soft delete — undoable
+    suspend fun softDeleteLoan(id: Long) =
+        loanDao.softDeleteLoan(id, System.currentTimeMillis())
+
+    suspend fun restoreLoan(id: Long) = loanDao.restoreLoan(id)
+
+    // Permanent delete — called by cleanup worker
+    suspend fun hardDeleteLoan(id: Long) = loanDao.hardDeleteLoan(id)
 }

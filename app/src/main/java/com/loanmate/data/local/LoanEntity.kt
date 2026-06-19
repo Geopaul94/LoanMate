@@ -30,5 +30,7 @@ data class LoanEntity(
     val completedEmis: Int = 0,
     val totalEmis: Int,
     val status: LoanStatus = LoanStatus.ACTIVE,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false,
+    val deletedAt: Long? = null
 )

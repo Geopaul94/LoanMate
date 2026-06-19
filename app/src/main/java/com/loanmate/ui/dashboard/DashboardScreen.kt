@@ -9,19 +9,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.loanmate.data.model.LoanStatus
+import com.loanmate.navigation.SAVED_STATE_DELETED_LOAN_ID
+import com.loanmate.ui.components.DebtFreeCountdownCard
 import com.loanmate.ui.components.LoanProgressCard
 import com.loanmate.ui.components.SummaryCard
 import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.DateUtils
 import com.loanmate.viewmodel.DashboardViewModel
+import com.loanmate.worker.DeleteCleanupWorker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,12 +37,40 @@ fun DashboardScreen(
     onAnalytics: () -> Unit,
     onSettings: () -> Unit,
     onAchievements: () -> Unit,
+    savedStateHandle: SavedStateHandle? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Watch for a deleted-loan handoff from LoanDetailsScreen
+    LaunchedEffect(savedStateHandle) {
+        savedStateHandle
+            ?.getStateFlow<Long?>(SAVED_STATE_DELETED_LOAN_ID, null)
+            ?.collect { deletedId ->
+                if (deletedId != null && deletedId > 0) {
+                    savedStateHandle[SAVED_STATE_DELETED_LOAN_ID] = null
+                    DeleteCleanupWorker.schedule(context, deletedId)
+                    scope.launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = "Loan deleted",
+                            actionLabel = "UNDO",
+                            duration = SnackbarDuration.Short
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.restoreLoan(deletedId)
+                            DeleteCleanupWorker.cancel(context, deletedId)
+                        }
+                    }
+                }
+            }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddLoan,
@@ -65,6 +99,12 @@ fun DashboardScreen(
                     query = searchQuery,
                     onQueryChange = viewModel::onSearchQueryChange
                 )
+            }
+
+            uiState.debtFreeDate?.let { dfDate ->
+                item {
+                    DebtFreeCountdownCard(debtFreeDateMs = dfDate)
+                }
             }
 
             item {

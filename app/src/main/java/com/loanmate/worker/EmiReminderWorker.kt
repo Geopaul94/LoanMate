@@ -29,8 +29,8 @@ class EmiReminderWorker @AssistedInject constructor(
         val loan = loanRepository.getLoanById(loanId).firstOrNull() ?: return Result.success()
 
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("loanId", loanId)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(MainActivity.EXTRA_LOAN_ID, loanId)
         }
         val pendingIntent = PendingIntent.getActivity(
             applicationContext, loanId.toInt(), intent,

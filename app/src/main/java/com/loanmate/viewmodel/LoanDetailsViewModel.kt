@@ -34,9 +34,9 @@ class LoanDetailsViewModel @Inject constructor(
     private val _milestone = MutableStateFlow<String?>(null)
     private val _showMilestone = MutableStateFlow(false)
 
-    // One-shot event for screen navigation after delete
-    private val _deleteEvent = MutableSharedFlow<Unit>()
-    val deleteEvent: SharedFlow<Unit> = _deleteEvent.asSharedFlow()
+    // One-shot event: emit deleted loanId so Dashboard can show Undo snackbar
+    private val _deleteEvent = MutableSharedFlow<Long>()
+    val deleteEvent: SharedFlow<Long> = _deleteEvent.asSharedFlow()
 
     val uiState: StateFlow<LoanDetailsUiState> = _loanId
         .filterNotNull()
@@ -106,8 +106,8 @@ class LoanDetailsViewModel @Inject constructor(
 
     fun deleteLoan(loan: LoanEntity) {
         viewModelScope.launch {
-            loanRepository.deleteLoan(loan)
-            _deleteEvent.emit(Unit)
+            loanRepository.softDeleteLoan(loan.id)
+            _deleteEvent.emit(loan.id)
         }
     }
 }
