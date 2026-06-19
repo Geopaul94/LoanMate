@@ -7,11 +7,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,7 +30,7 @@ fun PayoffStrategyScreen(
     viewModel: PayoffStrategyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var extraText by remember { mutableStateOf("5000") }
+    var extraText by rememberSaveable { mutableStateOf("5000") }
     val extra = extraText.toDoubleOrNull() ?: 0.0
 
     val avalanche = remember(uiState.activeLoans, extra) {
@@ -82,18 +83,20 @@ fun PayoffStrategyScreen(
             )
 
             if (avalanche != null && snowball != null) {
+                if (avalanche.capReached || snowball.capReached ||
+                    avalanche.nonAmortizingLoans.isNotEmpty()) {
+                    WarningBanner(avalanche.nonAmortizingLoans, avalanche.capReached || snowball.capReached)
+                }
                 Comparison(avalanche = avalanche, snowball = snowball)
                 StrategyCard(
                     title = "🏔️ Avalanche",
                     subtitle = "Pay highest interest rate first",
-                    plan = avalanche,
-                    accent = Color(0xFF1565C0)
+                    plan = avalanche
                 )
                 StrategyCard(
                     title = "❄️ Snowball",
                     subtitle = "Pay smallest balance first",
-                    plan = snowball,
-                    accent = Color(0xFF7B1FA2)
+                    plan = snowball
                 )
             }
         }
@@ -118,6 +121,35 @@ private fun EmptyState(loanCount: Int) {
 }
 
 @Composable
+private fun WarningBanner(nonAmortizing: List<String>, capReached: Boolean) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.onErrorContainer)
+            Spacer(Modifier.width(8.dp))
+            Column {
+                if (nonAmortizing.isNotEmpty()) {
+                    Text(
+                        "These loans never finish at the current EMI: ${nonAmortizing.joinToString()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+                if (capReached) {
+                    Text(
+                        "Simulation capped at 50 years. Numbers below may understate true payoff time.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun Comparison(
     avalanche: PayoffStrategyCalculator.PayoffPlan,
     snowball: PayoffStrategyCalculator.PayoffPlan
@@ -130,22 +162,25 @@ private fun Comparison(
     } ?: 0
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("💡 Quick comparison", style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold)
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer)
             Spacer(Modifier.height(8.dp))
             if (moneyDelta > 0) {
-                Text("• Avalanche saves ${CurrencyUtils.format(moneyDelta)} in interest.")
+                Text("• Avalanche saves ${CurrencyUtils.format(moneyDelta)} in interest.",
+                    color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
             if (firstWinDelta > 0) {
-                Text("• Snowball clears your first loan $firstWinDelta months sooner.")
+                Text("• Snowball clears your first loan $firstWinDelta months sooner.",
+                    color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
             Text(
                 "Pick what motivates you — both work.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -156,13 +191,12 @@ private fun Comparison(
 private fun StrategyCard(
     title: String,
     subtitle: String,
-    plan: PayoffStrategyCalculator.PayoffPlan,
-    accent: Color
+    plan: PayoffStrategyCalculator.PayoffPlan
 ) {
     Card(shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold, color = accent)
+                fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             Text(subtitle, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(12.dp))

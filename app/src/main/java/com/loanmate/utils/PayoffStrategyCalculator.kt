@@ -4,16 +4,13 @@ import com.loanmate.data.local.LoanEntity
 
 /**
  * Multi-loan payoff simulator.
- *
- * Each month:
- *   1. Every loan accrues interest on its outstanding (reducing balance).
- *   2. Pay minimum EMI on every loan -> principal reduces by (EMI - interest).
- *   3. Apply any extra cash to ONE loan based on strategy.
- *   4. Loans that hit ≤ 0 are removed.
- *
- * Cap simulation at 50 years (600 months) to guard against pathological inputs.
+ * Capped at 600 months. Loans whose base EMI cannot cover their monthly
+ * interest (non-amortizing) are surfaced via [PayoffPlan.nonAmortizingLoans];
+ * the simulator still includes them but the cap will be hit.
  */
 object PayoffStrategyCalculator {
+
+    private const val CAP_MONTHS = 600
 
     enum class Strategy { AVALANCHE, SNOWBALL }
 
@@ -24,13 +21,15 @@ object PayoffStrategyCalculator {
         val totalMonths: Int,
         val totalInterestPaid: Double,
         val totalPaid: Double,
-        val timeline: List<LoanTimeline>
+        val timeline: List<LoanTimeline>,
+        val capReached: Boolean = false,
+        val nonAmortizingLoans: List<String> = emptyList()
     )
 
     private data class SimLoan(
         val id: Long,
         val name: String,
-        val rate: Double,            // annual rate %
+        val rate: Double,
         var outstanding: Double,
         val baseEmi: Double
     )
@@ -40,58 +39,67 @@ object PayoffStrategyCalculator {
         extraCashPerMonth: Double,
         strategy: Strategy
     ): PayoffPlan {
-        val sim = loans.map {
-            SimLoan(it.id, it.loanName, it.interestRate, it.outstandingAmount, it.monthlyEmi)
-        }.toMutableList()
+        // Sanitize input — drop loans that can't be meaningfully simulated
+        val cleanExtra = extraCashPerMonth.takeIf { it.isFinite() && it >= 0 } ?: 0.0
+        val sim = loans
+            .filter {
+                it.outstandingAmount.isFinite() && it.outstandingAmount > 0 &&
+                        it.monthlyEmi.isFinite() && it.monthlyEmi > 0 &&
+                        it.interestRate.isFinite() && it.interestRate >= 0
+            }
+            .map { SimLoan(it.id, it.loanName, it.interestRate, it.outstandingAmount, it.monthlyEmi) }
+            .toMutableList()
+
+        // Detect non-amortizing loans up-front (EMI ≤ monthly interest)
+        val nonAmortizing = sim.filter { it.baseEmi <= it.outstanding * it.rate / 1200.0 + 1e-9 }
+            .map { it.name }
 
         val timeline = mutableListOf<LoanTimeline>()
         var month = 0
         var totalInterest = 0.0
         var totalPaid = 0.0
-        val cap = 600
 
-        while (sim.isNotEmpty() && month < cap) {
+        while (sim.isNotEmpty() && month < CAP_MONTHS) {
             month++
 
-            // Pay minimum EMI on each loan
+            // 1. Pay minimum EMI on each loan
             for (loan in sim) {
                 val monthlyRate = loan.rate / 1200.0
                 val interest = loan.outstanding * monthlyRate
-                val principalPart = (loan.baseEmi - interest).coerceAtLeast(0.0)
                 val payment = minOf(loan.baseEmi, loan.outstanding + interest)
                 totalInterest += interest
                 totalPaid += payment
                 loan.outstanding = (loan.outstanding + interest - payment).coerceAtLeast(0.0)
-                // unused: principalPart - keep for clarity above
-                @Suppress("UNUSED_VARIABLE") val _p = principalPart
             }
 
-            // Apply extra cash based on strategy (pick target from REMAINING loans only)
-            val activeLoans = sim.filter { it.outstanding > 0 }
-            if (extraCashPerMonth > 0 && activeLoans.isNotEmpty()) {
+            // 2. Apply extra cash to ONE target
+            val active = sim.filter { it.outstanding > 0 }
+            if (cleanExtra > 0 && active.isNotEmpty()) {
                 val target = when (strategy) {
-                    Strategy.AVALANCHE -> activeLoans.maxByOrNull { it.rate }!!
-                    Strategy.SNOWBALL -> activeLoans.minByOrNull { it.outstanding }!!
+                    Strategy.AVALANCHE -> active.maxByOrNull { it.rate }!!
+                    Strategy.SNOWBALL -> active.minByOrNull { it.outstanding }!!
                 }
-                val extra = minOf(extraCashPerMonth, target.outstanding)
+                val extra = minOf(cleanExtra, target.outstanding)
                 target.outstanding -= extra
                 totalPaid += extra
             }
 
-            // Remove finished loans
+            // 3. Remove finished loans
             val finished = sim.filter { it.outstanding <= 0.01 }
-            finished.forEach {
-                timeline.add(LoanTimeline(it.id, it.name, month))
-            }
+            finished.forEach { timeline.add(LoanTimeline(it.id, it.name, month)) }
             sim.removeAll(finished)
         }
+
+        val capReached = month >= CAP_MONTHS && sim.isNotEmpty()
 
         return PayoffPlan(
             strategy = strategy,
             totalMonths = month,
             totalInterestPaid = totalInterest,
             totalPaid = totalPaid,
-            timeline = timeline
+            timeline = timeline,
+            capReached = capReached,
+            nonAmortizingLoans = nonAmortizing
         )
     }
 }

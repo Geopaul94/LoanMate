@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -27,7 +28,7 @@ fun CalculatorScreen(
 
     LaunchedEffect(loanId) { viewModel.loadLoan(loanId) }
 
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabs = listOf("Prepayment", "Foreclosure")
 
     Scaffold(
@@ -71,6 +72,12 @@ fun CalculatorScreen(
     }
 }
 
+internal fun sanitizeDecimal(input: String): String? {
+    val filtered = input.filter { it.isDigit() || it == '.' }
+    if (filtered.count { it == '.' } > 1) return null
+    return filtered
+}
+
 @Composable
 internal fun MoneyField(
     value: String,
@@ -80,7 +87,7 @@ internal fun MoneyField(
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = { input -> onChange(input.filter { it.isDigit() || it == '.' }) },
+        onValueChange = { input -> sanitizeDecimal(input)?.let(onChange) },
         label = { Text(label) },
         leadingIcon = { Text("₹") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -98,7 +105,7 @@ internal fun PercentField(
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = { input -> onChange(input.filter { it.isDigit() || it == '.' }) },
+        onValueChange = { input -> sanitizeDecimal(input)?.let(onChange) },
         label = { Text(label) },
         trailingIcon = { Text("%") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
