@@ -11,6 +11,8 @@ import com.loanmate.ui.dashboard.DashboardScreen
 import com.loanmate.ui.loan.add.AddLoanScreen
 import com.loanmate.ui.loan.details.LoanDetailsScreen
 import com.loanmate.ui.analytics.AnalyticsScreen
+import com.loanmate.ui.calculator.CalculatorScreen
+import com.loanmate.ui.payoff.PayoffStrategyScreen
 import com.loanmate.ui.settings.SettingsScreen
 import com.loanmate.ui.achievements.AchievementsScreen
 
@@ -65,6 +67,7 @@ fun LoanMateNavHost(
                 loanId = loanId,
                 onBack = { navController.popBackStack() },
                 onEdit = { navController.navigate(Screen.AddLoan.createRoute(loanId)) },
+                onCalculators = { navController.navigate(Screen.Calculator.createRoute(loanId)) },
                 onDeleted = { id ->
                     navController.previousBackStackEntry
                         ?.savedStateHandle
@@ -74,8 +77,23 @@ fun LoanMateNavHost(
             )
         }
 
+        composable(
+            route = Screen.Calculator.route,
+            arguments = listOf(navArgument("loanId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val loanId = backStackEntry.arguments!!.getLong("loanId")
+            CalculatorScreen(loanId = loanId, onBack = { navController.popBackStack() })
+        }
+
         composable(Screen.Analytics.route) {
-            AnalyticsScreen(onBack = { navController.popBackStack() })
+            AnalyticsScreen(
+                onBack = { navController.popBackStack() },
+                onPayoffStrategy = { navController.navigate(Screen.PayoffStrategy.route) }
+            )
+        }
+
+        composable(Screen.PayoffStrategy.route) {
+            PayoffStrategyScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Screen.Settings.route) {

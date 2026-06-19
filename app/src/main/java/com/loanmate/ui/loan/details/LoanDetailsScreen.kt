@@ -34,6 +34,7 @@ fun LoanDetailsScreen(
     loanId: Long,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onCalculators: () -> Unit,
     onDeleted: (Long) -> Unit,
     viewModel: LoanDetailsViewModel = hiltViewModel()
 ) {
@@ -57,6 +58,9 @@ fun LoanDetailsScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onCalculators) {
+                        Icon(Icons.Default.Calculate, "Calculators")
+                    }
                     IconButton(onClick = onEdit) {
                         Icon(Icons.Default.Edit, "Edit")
                     }

@@ -22,6 +22,7 @@ import com.loanmate.viewmodel.AnalyticsViewModel
 @Composable
 fun AnalyticsScreen(
     onBack: () -> Unit,
+    onPayoffStrategy: () -> Unit = {},
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -46,6 +47,15 @@ fun AnalyticsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { OverviewSection(uiState = uiState) }
+            item {
+                Button(
+                    onClick = onPayoffStrategy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("📊  Payoff Strategy — Avalanche vs Snowball")
+                }
+            }
             item { LoanDistributionSection(uiState = uiState) }
             item { MonthlyEmiSection(uiState = uiState) }
         }
