@@ -111,6 +111,15 @@ fun SettingsScreen(
             }
             item {
                 Spacer(Modifier.height(8.dp))
+                SectionHeader("Cloud sync")
+                DriveBackupSection(
+                    onShowSnackbar = { msg ->
+                        scope.launch { snackbarHostState.showSnackbar(msg) }
+                    }
+                )
+            }
+            item {
+                Spacer(Modifier.height(8.dp))
                 SectionHeader("About")
                 ActionRow(Icons.Default.Info, "About LoanMate", "Version 1.0") {}
                 ActionRow(Icons.Default.Policy, "Privacy Policy", "Read our privacy policy") {}

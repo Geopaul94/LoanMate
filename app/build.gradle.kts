@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,14 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
+
+// Load secrets from local.properties (gitignored).
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val googleOauthWebClientId: String =
+    localProps.getProperty("GOOGLE_OAUTH_WEB_CLIENT_ID", "")
 
 android {
     namespace = "com.loanmate"
@@ -16,6 +26,9 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        buildConfigField("String", "GOOGLE_OAUTH_WEB_CLIENT_ID",
+            "\"$googleOauthWebClientId\"")
     }
 
     buildTypes {
@@ -36,6 +49,25 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    packaging {
+        resources {
+            // Google API client libs ship duplicate META-INF files that
+            // clash with each other and Android's bundled HTTP client.
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/INDEX.LIST",
+                "META-INF/*.kotlin_module"
+            )
+        }
     }
 }
 
@@ -97,4 +129,10 @@ dependencies {
 
     // Coroutines
     implementation(libs.coroutines.android)
+
+    // Google Drive sync
+    implementation(libs.play.services.auth)
+    implementation(libs.google.api.client.android)
+    implementation(libs.google.api.services.drive)
+    implementation(libs.google.http.client.gson)
 }
