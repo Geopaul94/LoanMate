@@ -15,4 +15,5 @@ sealed class Screen(val route: String) {
         fun createRoute(loanId: Long) = "calculator/$loanId"
     }
     object PayoffStrategy : Screen("payoff_strategy")
+    object Calendar : Screen("calendar")
 }

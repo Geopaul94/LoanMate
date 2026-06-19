@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.loanmate.data.local.LoanEntity
 import com.loanmate.data.model.LoanStatus
 import com.loanmate.data.repository.LoanRepository
+import com.loanmate.data.repository.PaymentRepository
 import com.loanmate.utils.EmiCalculator
+import com.loanmate.utils.StreakCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -19,12 +21,15 @@ data class DashboardUiState(
     val completedLoansCount: Int = 0,
     val searchQuery: String = "",
     val debtFreeDate: Long? = null,
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0,
     val isLoading: Boolean = true
 )
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val loanRepository: LoanRepository
+    private val loanRepository: LoanRepository,
+    paymentRepository: PaymentRepository
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -33,16 +38,18 @@ class DashboardViewModel @Inject constructor(
     private val summaryFlow = combine(
         loanRepository.getActiveLoanCount(),
         loanRepository.getTotalOutstanding(),
-        loanRepository.getTotalMonthlyEmi()
-    ) { count, outstanding, monthly ->
-        Triple(count, outstanding ?: 0.0, monthly ?: 0.0)
+        loanRepository.getTotalMonthlyEmi(),
+        paymentRepository.getAllPaymentsNewestFirst()
+    ) { count, outstanding, monthly, payments ->
+        val streak = StreakCalculator.calculate(payments)
+        SummaryBundle(count, outstanding ?: 0.0, monthly ?: 0.0, streak.current, streak.longest)
     }
 
     val uiState: StateFlow<DashboardUiState> = combine(
         loanRepository.getAllLoans(),
         summaryFlow,
         _searchQuery
-    ) { loans, (activeCount, outstanding, monthlyEmi), query ->
+    ) { loans, summary, query ->
         val filtered = if (query.isBlank()) loans
         else loans.filter {
             it.loanName.contains(query, ignoreCase = true) ||
@@ -53,12 +60,14 @@ class DashboardViewModel @Inject constructor(
             .maxOfOrNull { EmiCalculator.projectLoanEndDate(it.firstEmiDate, it.completedEmis, it.totalEmis) }
         DashboardUiState(
             loans = filtered,
-            activeLoanCount = activeCount,
-            totalOutstanding = outstanding,
-            totalMonthlyEmi = monthlyEmi,
+            activeLoanCount = summary.activeCount,
+            totalOutstanding = summary.outstanding,
+            totalMonthlyEmi = summary.monthlyEmi,
             completedLoansCount = loans.count { it.status == LoanStatus.COMPLETED },
             searchQuery = query,
             debtFreeDate = debtFreeDate,
+            currentStreak = summary.currentStreak,
+            longestStreak = summary.longestStreak,
             isLoading = false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardUiState())
@@ -70,4 +79,12 @@ class DashboardViewModel @Inject constructor(
     fun restoreLoan(loanId: Long) {
         viewModelScope.launch { loanRepository.restoreLoan(loanId) }
     }
+
+    private data class SummaryBundle(
+        val activeCount: Int,
+        val outstanding: Double,
+        val monthlyEmi: Double,
+        val currentStreak: Int,
+        val longestStreak: Int
+    )
 }

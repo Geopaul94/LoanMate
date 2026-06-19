@@ -23,6 +23,7 @@ import com.loanmate.data.model.LoanStatus
 import com.loanmate.navigation.SAVED_STATE_DELETED_LOAN_ID
 import com.loanmate.ui.components.DebtFreeCountdownCard
 import com.loanmate.ui.components.LoanProgressCard
+import com.loanmate.ui.components.StreakChip
 import com.loanmate.ui.components.SummaryCard
 import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.DateUtils
@@ -37,6 +38,7 @@ fun DashboardScreen(
     onAnalytics: () -> Unit,
     onSettings: () -> Unit,
     onAchievements: () -> Unit,
+    onCalendar: () -> Unit = {},
     savedStateHandle: SavedStateHandle? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -90,8 +92,15 @@ fun DashboardScreen(
                 DashboardHeader(
                     onAnalytics = onAnalytics,
                     onSettings = onSettings,
-                    onAchievements = onAchievements
+                    onAchievements = onAchievements,
+                    onCalendar = onCalendar
                 )
+            }
+
+            if (uiState.currentStreak > 0 || uiState.longestStreak > 0) {
+                item {
+                    StreakChip(current = uiState.currentStreak, longest = uiState.longestStreak)
+                }
             }
 
             item {
@@ -154,7 +163,8 @@ fun DashboardScreen(
 private fun DashboardHeader(
     onAnalytics: () -> Unit,
     onSettings: () -> Unit,
-    onAchievements: () -> Unit
+    onAchievements: () -> Unit,
+    onCalendar: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -174,6 +184,9 @@ private fun DashboardHeader(
             )
         }
         Row {
+            IconButton(onClick = onCalendar) {
+                Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar")
+            }
             IconButton(onClick = onAchievements) {
                 Icon(Icons.Default.EmojiEvents, contentDescription = "Achievements")
             }

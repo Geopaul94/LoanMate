@@ -2,10 +2,12 @@ package com.loanmate.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,6 +20,7 @@ import com.loanmate.data.local.LoanEntity
 import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.DateUtils
 import com.loanmate.utils.EmiCalculator
+import com.loanmate.utils.MissedPaymentDetector
 
 @Composable
 fun LoanProgressCard(
@@ -35,6 +38,7 @@ fun LoanProgressCard(
     val nextDueDate = DateUtils.nextEmiDate(loan.firstEmiDate, loan.completedEmis)
     val daysUntil = DateUtils.getDaysUntil(nextDueDate)
     val dueDateStatus = DateUtils.getDueDateStatus(daysUntil)
+    val missed = remember(loan) { MissedPaymentDetector.detect(loan) }
 
     val statusColor = when (dueDateStatus) {
         DateUtils.DueDateStatus.OVERDUE -> Color(0xFFD32F2F)
@@ -51,6 +55,10 @@ fun LoanProgressCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            if (missed.missedCount > 0) {
+                MissedBanner(missed)
+                Spacer(Modifier.height(12.dp))
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -132,6 +140,40 @@ fun LoanProgressCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MissedBanner(info: MissedPaymentDetector.MissedInfo) {
+    val red = Color(0xFFD32F2F)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(red.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Warning,
+            contentDescription = null,
+            tint = red,
+            modifier = Modifier.size(16.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "${info.missedCount} missed EMI${if (info.missedCount > 1) "s" else ""}",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = red
+            )
+            val tail = if (info.showCibilWarning) " · may impact CIBIL" else ""
+            Text(
+                text = "Est. penalty: ${CurrencyUtils.format(info.estimatedPenalty)}$tail",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

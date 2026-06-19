@@ -12,6 +12,7 @@ import com.loanmate.ui.loan.add.AddLoanScreen
 import com.loanmate.ui.loan.details.LoanDetailsScreen
 import com.loanmate.ui.analytics.AnalyticsScreen
 import com.loanmate.ui.calculator.CalculatorScreen
+import com.loanmate.ui.calendar.EmiCalendarScreen
 import com.loanmate.ui.payoff.PayoffStrategyScreen
 import com.loanmate.ui.settings.SettingsScreen
 import com.loanmate.ui.achievements.AchievementsScreen
@@ -40,8 +41,13 @@ fun LoanMateNavHost(
                 onAnalytics = { navController.navigate(Screen.Analytics.route) },
                 onSettings = { navController.navigate(Screen.Settings.route) },
                 onAchievements = { navController.navigate(Screen.Achievements.route) },
+                onCalendar = { navController.navigate(Screen.Calendar.route) },
                 savedStateHandle = backStackEntry.savedStateHandle
             )
+        }
+
+        composable(Screen.Calendar.route) {
+            EmiCalendarScreen(onBack = { navController.popBackStack() })
         }
 
         composable(

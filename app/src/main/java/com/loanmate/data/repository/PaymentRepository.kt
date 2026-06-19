@@ -12,6 +12,9 @@ class PaymentRepository @Inject constructor(private val dao: PaymentHistoryDao) 
     fun getPaymentsByLoanId(loanId: Long): Flow<List<PaymentHistoryEntity>> =
         dao.getPaymentsByLoanId(loanId)
 
+    fun getAllPaymentsNewestFirst(): Flow<List<PaymentHistoryEntity>> =
+        dao.getAllPaymentsNewestFirst()
+
     suspend fun getTotalPaymentCount(): Int = dao.getTotalPaymentCount()
 
     suspend fun insertPayment(payment: PaymentHistoryEntity) = dao.insertPayment(payment)
