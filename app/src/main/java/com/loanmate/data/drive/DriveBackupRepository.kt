@@ -2,9 +2,9 @@ package com.loanmate.data.drive
 
 import android.content.Context
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.api.client.extensions.android.http.AndroidHttp
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.ByteArrayContent
+import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
@@ -50,9 +50,8 @@ class DriveBackupRepository @Inject constructor(
             context, listOf(DriveScopes.DRIVE_APPDATA)
         ).apply { selectedAccount = account.account }
 
-        @Suppress("DEPRECATION")
         return Drive.Builder(
-            AndroidHttp.newCompatibleTransport(),
+            NetHttpTransport(),
             GsonFactory.getDefaultInstance(),
             credential
         ).setApplicationName(APP_NAME).build()
