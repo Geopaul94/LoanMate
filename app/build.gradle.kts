@@ -135,4 +135,10 @@ dependencies {
     implementation(libs.google.api.client.android)
     implementation(libs.google.api.services.drive)
     implementation(libs.google.http.client.gson)
+
+    // Test
+    testImplementation(libs.junit)
+    testImplementation(libs.truth)
+    testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.coroutines.test)
 }

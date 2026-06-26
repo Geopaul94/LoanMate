@@ -133,8 +133,11 @@ object PdfExporter {
 
         val outDir = File(context.getExternalFilesDir(null), "exports").apply { mkdirs() }
         val outFile = File(outDir, outFileName)
-        FileOutputStream(outFile).use { pdf.writeTo(it) }
-        pdf.close()
+        try {
+            FileOutputStream(outFile).use { pdf.writeTo(it) }
+        } finally {
+            pdf.close()   // ensure native PDF buffer is freed even if writeTo throws
+        }
         return outFile
     }
 
