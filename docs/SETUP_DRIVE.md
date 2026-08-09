@@ -57,7 +57,7 @@ Go to <https://console.cloud.google.com/apis/credentials>.
 1. Click **Create Credentials → OAuth client ID**.
 2. Application type: **Android**.
 3. Name: `LoanMate Android (debug)`.
-4. Package name: `com.loanmate`
+4. Package name: `com.geo.loanmate`
 5. SHA-1: paste the SHA-1 you copied above.
 6. Click **Create**. The Android client ID itself is not used in code — it just registers your app.
 

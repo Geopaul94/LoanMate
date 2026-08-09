@@ -30,11 +30,13 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.loanmate"
-        minSdk = 30
+        // Play Store identity follows the personal convention com.geo.<app>.
+        // Code package (namespace) stays com.loanmate — invisible to users.
+        applicationId = "com.geo.loanmate"
+        minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         buildConfigField("String", "GOOGLE_OAUTH_WEB_CLIENT_ID",
             "\"$googleOauthWebClientId\"")
@@ -43,7 +45,8 @@ android {
     signingConfigs {
         create("release") {
             if (hasReleaseKeystore) {
-                storeFile = file(keystoreProps.getProperty("storeFile"))
+                // storeFile path is relative to the project root.
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
                 storePassword = keystoreProps.getProperty("storePassword")
                 keyAlias = keystoreProps.getProperty("keyAlias")
                 keyPassword = keystoreProps.getProperty("keyPassword")
