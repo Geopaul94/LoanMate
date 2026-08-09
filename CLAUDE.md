@@ -49,9 +49,17 @@ EMI & Loan Tracker — Android app. Personal/hobby project, targeting Play Store
 - Remote: git@github-geopaul94:Geopaul94/LoanMate.git (personal identity
   geopaul94). NEVER commit keystore.properties, *.jks, or local.properties.
 
+## Store assets (`/store` in repo, mirrored to backup store-assets/)
+- `icon-512.png` — 512×512 Play listing icon (emerald + gold growth mark).
+- `feature-graphic-1024x500.png` — feature graphic (logo + wordmark + tagline).
+- Rendered from SVG via rsvg-convert; brand fonts installed to ~/Library/Fonts.
+- Still TODO: phone screenshots (≥2). Physical MIUI device blocks adb input,
+  so capture via the Pixel_7 emulator (`emulator -avd Pixel_7`), install the
+  debug apk, seed data, navigate + `adb -e exec-out screencap`.
+
 ## Current state
 - v1.0.0 AAB built + signed + smoke-tested on device (com.geo.loanmate); ready
-  for Play Console.
-- Before upload: add store screenshots + feature graphic to the backup
-  store-assets/, host the privacy policy for a URL, and (for Drive in release)
-  create a GCP OAuth client for com.geo.loanmate + the release signing SHA1.
+  for Play Console. Icon + feature graphic done.
+- Before upload: capture screenshots, host the privacy policy for a URL, and
+  (for Drive in release) create a GCP OAuth client for com.geo.loanmate + the
+  release signing SHA1.
