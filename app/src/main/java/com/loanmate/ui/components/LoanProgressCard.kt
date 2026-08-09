@@ -12,11 +12,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.loanmate.data.local.LoanEntity
+import com.loanmate.ui.theme.DangerRed
+import com.loanmate.ui.theme.SuccessGreen
+import com.loanmate.ui.theme.WarningAmber
 import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.DateUtils
 import com.loanmate.utils.EmiCalculator
@@ -41,18 +44,20 @@ fun LoanProgressCard(
     val missed = remember(loan) { MissedPaymentDetector.detect(loan) }
 
     val statusColor = when (dueDateStatus) {
-        DateUtils.DueDateStatus.OVERDUE -> Color(0xFFD32F2F)
-        DateUtils.DueDateStatus.URGENT -> Color(0xFFE65100)
-        DateUtils.DueDateStatus.UPCOMING -> Color(0xFFF9A825)
-        DateUtils.DueDateStatus.SAFE -> Color(0xFF2E7D32)
+        DateUtils.DueDateStatus.OVERDUE -> DangerRed
+        DateUtils.DueDateStatus.URGENT -> WarningAmber
+        DateUtils.DueDateStatus.UPCOMING -> WarningAmber
+        DateUtils.DueDateStatus.SAFE -> SuccessGreen
     }
 
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(Dimens.CardRadius),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = Dimens.CardElevation)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             if (missed.missedCount > 0) {
@@ -69,7 +74,6 @@ fun LoanProgressCard(
                     Text(
                         text = loan.loanName,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -84,7 +88,6 @@ fun LoanProgressCard(
                     Text(
                         text = CurrencyUtils.formatShort(loan.outstandingAmount),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
@@ -95,18 +98,19 @@ fun LoanProgressCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             LinearProgressIndicator(
                 progress = { animatedProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp),
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
                 color = loanTypeColor(loan.loanType),
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -129,14 +133,14 @@ fun LoanProgressCard(
                             daysUntil == 0 -> "Due today"
                             else -> "Due in $daysUntil days"
                         },
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = statusColor
                     )
                 }
 
                 Text(
                     text = "${(progress * 100).toInt()}% done",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -146,33 +150,35 @@ fun LoanProgressCard(
 
 @Composable
 private fun MissedBanner(info: MissedPaymentDetector.MissedInfo) {
-    val red = Color(0xFFD32F2F)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(red.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
-            .padding(8.dp),
+            .background(
+                MaterialTheme.colorScheme.errorContainer,
+                RoundedCornerShape(Dimens.ChipRadius)
+            )
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.Warning,
             contentDescription = null,
-            tint = red,
-            modifier = Modifier.size(16.dp)
+            tint = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "${info.missedCount} missed EMI${if (info.missedCount > 1) "s" else ""}",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = red
+                color = MaterialTheme.colorScheme.onErrorContainer
             )
             val tail = if (info.showCibilWarning) " · may impact CIBIL" else ""
             Text(
                 text = "Est. penalty: ${CurrencyUtils.format(info.estimatedPenalty)}$tail",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
             )
         }
     }

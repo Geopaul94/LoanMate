@@ -23,6 +23,7 @@ import com.loanmate.data.model.LoanStatus
 import com.loanmate.ui.components.LoanTypeIcon
 import com.loanmate.ui.components.MilestoneCard
 import com.loanmate.ui.components.loanTypeColor
+import com.loanmate.ui.theme.SuccessGreen
 import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.DateUtils
 import com.loanmate.utils.EmiCalculator
@@ -168,7 +169,7 @@ fun LoanDetailsScreen(
 @Composable
 private fun LoanHeaderCard(loan: LoanEntity) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Row(
@@ -195,7 +196,7 @@ private fun LoanHeaderCard(loan: LoanEntity) {
 @Composable
 private fun LoanProgressSection(loan: LoanEntity) {
     val progress = EmiCalculator.getProgressPercent(loan.completedEmis, loan.totalEmis)
-    Card(shape = RoundedCornerShape(16.dp)) {
+    Card(shape = RoundedCornerShape(20.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -212,7 +213,7 @@ private fun LoanProgressSection(loan: LoanEntity) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${loan.completedEmis} of ${loan.totalEmis} EMIs paid", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (loan.status == LoanStatus.COMPLETED) {
-                    Text("COMPLETED ✅", style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                    Text("COMPLETED ✅", style = MaterialTheme.typography.labelSmall, color = SuccessGreen)
                 }
             }
         }
@@ -224,7 +225,7 @@ private fun LoanStatsSection(loan: LoanEntity) {
     val nextDueDate = DateUtils.nextEmiDate(loan.firstEmiDate, loan.completedEmis)
     val totalInterest = EmiCalculator.calculateTotalInterest(loan.principalAmount, loan.monthlyEmi, loan.tenureValue, loan.tenureUnit)
 
-    Card(shape = RoundedCornerShape(16.dp)) {
+    Card(shape = RoundedCornerShape(20.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Loan Statistics", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             StatRow("Principal Amount", CurrencyUtils.format(loan.principalAmount))
@@ -256,8 +257,8 @@ private fun StatRow(label: String, value: String) {
 @Composable
 private fun PaymentHistoryItem(payment: PaymentHistoryEntity) {
     Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -267,13 +268,13 @@ private fun PaymentHistoryItem(payment: PaymentHistoryEntity) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFF2E7D32).copy(alpha = 0.15f)
+                    color = SuccessGreen.copy(alpha = 0.15f)
                 ) {
                     Text(
                         "EMI ${payment.emiNumber}",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF2E7D32),
+                        color = SuccessGreen,
                         fontWeight = FontWeight.Bold
                     )
                 }

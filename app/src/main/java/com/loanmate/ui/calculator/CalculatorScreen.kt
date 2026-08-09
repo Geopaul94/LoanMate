@@ -2,6 +2,7 @@ package com.loanmate.ui.calculator
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -140,7 +141,10 @@ internal fun ResultRow(label: String, value: String, isHighlight: Boolean = fals
 @Composable
 private fun LoanContextCard(loan: LoanEntity) {
     val remainingMonths = (loan.totalEmis - loan.completedEmis).coerceAtLeast(0)
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(loan.loanName, style = MaterialTheme.typography.titleMedium,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)

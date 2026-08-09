@@ -66,10 +66,10 @@ fun AchievementsScreen(
 @Composable
 private fun AchievementCard(achievement: AchievementEntity, earned: Boolean) {
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (earned) Color(0xFF1B5E20).copy(alpha = 0.08f)
-            else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (earned) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceContainerLow
         ),
         modifier = Modifier
             .fillMaxWidth()
@@ -82,7 +82,7 @@ private fun AchievementCard(achievement: AchievementEntity, earned: Boolean) {
         ) {
             Surface(
                 shape = CircleShape,
-                color = if (earned) Color(0xFF1B5E20).copy(alpha = 0.15f)
+                color = if (earned) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                 modifier = Modifier.size(52.dp)
             ) {
@@ -108,9 +108,10 @@ private fun AchievementCard(achievement: AchievementEntity, earned: Boolean) {
                 if (earned && achievement.earnedAt != null) {
                     Text(
                         "Earned",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF2E7D32),
-                        fontWeight = FontWeight.Medium
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (earned) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

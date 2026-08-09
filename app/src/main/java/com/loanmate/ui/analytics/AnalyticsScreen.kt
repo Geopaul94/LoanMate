@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.loanmate.ui.components.loanTypeColor
+import com.loanmate.ui.theme.DangerRed
+import com.loanmate.ui.theme.SuccessGreen
+import com.loanmate.ui.theme.WarningAmber
 import com.loanmate.utils.CurrencyUtils
 import com.loanmate.viewmodel.AnalyticsViewModel
 
@@ -57,14 +60,14 @@ fun AnalyticsScreen(
 
 @Composable
 private fun OverviewSection(uiState: com.loanmate.viewmodel.AnalyticsUiState) {
-    Card(shape = RoundedCornerShape(16.dp)) {
+    Card(shape = RoundedCornerShape(20.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Financial Overview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
             AnalyticsRow("Total Principal Borrowed", CurrencyUtils.format(uiState.totalPrincipal), MaterialTheme.colorScheme.primary)
-            AnalyticsRow("Total Amount Paid", CurrencyUtils.format(uiState.totalPaid), Color(0xFF2E7D32))
-            AnalyticsRow("Total Outstanding", CurrencyUtils.format(uiState.totalOutstanding), Color(0xFFD32F2F))
-            AnalyticsRow("Monthly EMI Commitment", CurrencyUtils.format(uiState.totalMonthlyEmi), Color(0xFFE65100))
+            AnalyticsRow("Total Amount Paid", CurrencyUtils.format(uiState.totalPaid), SuccessGreen)
+            AnalyticsRow("Total Outstanding", CurrencyUtils.format(uiState.totalOutstanding), DangerRed)
+            AnalyticsRow("Monthly EMI Commitment", CurrencyUtils.format(uiState.totalMonthlyEmi), WarningAmber)
 
             Spacer(Modifier.height(4.dp))
 
@@ -74,7 +77,7 @@ private fun OverviewSection(uiState: com.loanmate.viewmodel.AnalyticsUiState) {
                 LinearProgressIndicator(
                     progress = { uiState.totalPaid.toFloat() / uiState.totalPrincipal.toFloat() },
                     modifier = Modifier.fillMaxWidth().height(8.dp),
-                    color = Color(0xFF2E7D32)
+                    color = SuccessGreen
                 )
             }
         }
@@ -85,7 +88,7 @@ private fun OverviewSection(uiState: com.loanmate.viewmodel.AnalyticsUiState) {
 private fun LoanDistributionSection(uiState: com.loanmate.viewmodel.AnalyticsUiState) {
     if (uiState.loansByType.isEmpty()) return
 
-    Card(shape = RoundedCornerShape(16.dp)) {
+    Card(shape = RoundedCornerShape(20.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Loan Category Breakdown", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
@@ -122,7 +125,7 @@ private fun MonthlyEmiSection(uiState: com.loanmate.viewmodel.AnalyticsUiState) 
     val activeLoans = uiState.loans.filter { it.status == com.loanmate.data.model.LoanStatus.ACTIVE }
     if (activeLoans.isEmpty()) return
 
-    Card(shape = RoundedCornerShape(16.dp)) {
+    Card(shape = RoundedCornerShape(20.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Active Loan EMI Breakdown", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 

@@ -221,7 +221,7 @@ private fun DaySection(
     val dateLabel = SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(cal.time)
     val total = occurrences.sumOf { it.amount }
 
-    Card(shape = RoundedCornerShape(12.dp)) {
+    Card(shape = RoundedCornerShape(16.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
