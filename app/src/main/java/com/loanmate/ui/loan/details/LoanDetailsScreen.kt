@@ -127,17 +127,12 @@ fun LoanDetailsScreen(
                 }
             } else {
                 item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Your payment history will appear here.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    com.loanmate.ui.components.EmptyState(
+                        emoji = "🌱",
+                        title = "No payments yet",
+                        message = "Mark your first EMI paid and your progress story starts here.",
+                        compact = true
+                    )
                 }
             }
 

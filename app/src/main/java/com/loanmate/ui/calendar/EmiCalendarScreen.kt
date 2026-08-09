@@ -79,13 +79,11 @@ fun EmiCalendarScreen(
             }
 
             if (uiState.occurrencesByDay.isEmpty() && !uiState.isLoading) {
-                Box(Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
-                    Text(
-                        "No upcoming EMIs. Add an active loan to see EMI dates here.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                com.loanmate.ui.components.EmptyState(
+                    emoji = "🗓️",
+                    title = "Nothing due yet",
+                    message = "Once you have an active loan, its EMI dates will light up here."
+                )
             }
         }
     }

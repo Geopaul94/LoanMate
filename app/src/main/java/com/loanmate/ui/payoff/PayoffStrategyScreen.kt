@@ -63,7 +63,7 @@ fun PayoffStrategyScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (uiState.activeLoans.size < 2) {
-                EmptyState(loanCount = uiState.activeLoans.size)
+                PayoffEmptyState(loanCount = uiState.activeLoans.size)
                 return@Column
             }
 
@@ -104,20 +104,15 @@ fun PayoffStrategyScreen(
 }
 
 @Composable
-private fun EmptyState(loanCount: Int) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("📊", style = MaterialTheme.typography.displayLarge)
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = if (loanCount == 0) "Add a loan to see your payoff strategy."
-                   else "Add another active loan to compare strategies.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+private fun PayoffEmptyState(loanCount: Int) {
+    com.loanmate.ui.components.EmptyState(
+        emoji = if (loanCount == 0) "📊" else "⚖️",
+        title = if (loanCount == 0) "Nothing to strategize yet" else "Add one more loan",
+        message = if (loanCount == 0)
+            "Add a couple of loans and we'll map the smartest way to clear them."
+        else
+            "Avalanche vs Snowball needs at least two active loans to compare."
+    )
 }
 
 @Composable

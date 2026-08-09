@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.loanmate.data.model.LoanStatus
 import com.loanmate.navigation.SAVED_STATE_DELETED_LOAN_ID
 import com.loanmate.ui.components.DebtFreeCountdownCard
+import com.loanmate.ui.components.EmptyState
 import com.loanmate.ui.components.LoanProgressCard
 import com.loanmate.ui.components.StreakChip
 import com.loanmate.ui.components.SummaryCard
@@ -121,7 +122,24 @@ fun DashboardScreen(
 
             val activeLoans = uiState.loans.filter { it.status == LoanStatus.ACTIVE }
             if (activeLoans.isEmpty()) {
-                item { EmptyLoansState() }
+                item {
+                    if (searchQuery.isNotBlank()) {
+                        EmptyState(
+                            emoji = "🔍",
+                            title = "No matches",
+                            message = "No loans or banks match \"$searchQuery\". Try a different search.",
+                            compact = true
+                        )
+                    } else {
+                        EmptyState(
+                            emoji = "🏦",
+                            title = "Start your journey",
+                            message = "Add your first loan and watch yourself march toward debt-free freedom.",
+                            ctaLabel = "Add your first loan",
+                            onCta = onAddLoan
+                        )
+                    }
+                }
             } else {
                 items(activeLoans, key = { it.id }) { loan ->
                     LoanProgressCard(
@@ -225,20 +243,3 @@ private fun SummarySection(uiState: com.loanmate.viewmodel.DashboardUiState) {
     }
 }
 
-@Composable
-private fun EmptyLoansState() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(text = "🏦", style = MaterialTheme.typography.displayMedium)
-        Text(
-            text = "Add your first loan and start your journey.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
