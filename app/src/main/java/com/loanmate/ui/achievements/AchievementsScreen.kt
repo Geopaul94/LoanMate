@@ -24,22 +24,13 @@ import com.loanmate.viewmodel.AchievementsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AchievementsScreen(
-    onBack: () -> Unit,
+    onBack: () -> Unit = {},
     viewModel: AchievementsViewModel = hiltViewModel()
 ) {
     val achievements by viewModel.achievements.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Achievements") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
+        topBar = { TopAppBar(title = { Text("Rewards") }) }
     ) { padding ->
         LazyColumn(
             modifier = Modifier

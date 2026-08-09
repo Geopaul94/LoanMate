@@ -38,10 +38,6 @@ fun LoanMateNavHost(
             DashboardScreen(
                 onAddLoan = { navController.navigate(Screen.AddLoan.createRoute()) },
                 onLoanClick = { loanId -> navController.navigate(Screen.LoanDetails.createRoute(loanId)) },
-                onAnalytics = { navController.navigate(Screen.Analytics.route) },
-                onSettings = { navController.navigate(Screen.Settings.route) },
-                onAchievements = { navController.navigate(Screen.Achievements.route) },
-                onCalendar = { navController.navigate(Screen.Calendar.route) },
                 savedStateHandle = backStackEntry.savedStateHandle
             )
         }

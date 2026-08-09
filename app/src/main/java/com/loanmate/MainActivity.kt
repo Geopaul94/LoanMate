@@ -5,9 +5,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,6 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.loanmate.navigation.LoanMateNavHost
 import com.loanmate.ui.onboarding.OnboardingScreen
+import com.loanmate.ui.shell.LoanMateBottomBar
+import com.loanmate.ui.shell.shouldShowBottomBar
 import com.loanmate.ui.theme.LoanMateTheme
 import com.loanmate.viewmodel.OnboardingViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -42,13 +49,8 @@ class MainActivity : ComponentActivity() {
                             viewModel = onboardingVm,
                             onFinished = { /* state flow will recompose into Main */ }
                         )
-                        true -> {
-                            val navController = rememberNavController()
-                            LoanMateNavHost(
-                                navController = navController,
-                                deepLinkLoanId = pendingLoanId.value,
-                                onDeepLinkConsumed = { pendingLoanId.value = null }
-                            )
+                        true -> AppShell(pendingLoanId = pendingLoanId.value) {
+                            pendingLoanId.value = null
                         }
                     }
                 }
@@ -69,6 +71,32 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_LOAN_ID = "loanId"
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun AppShell(pendingLoanId: Long?, onDeepLinkConsumed: () -> Unit) {
+    val navController = rememberNavController()
+    val showBottomBar = shouldShowBottomBar(navController)
+
+    Scaffold(
+        bottomBar = {
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it })
+            ) {
+                LoanMateBottomBar(navController = navController)
+            }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            LoanMateNavHost(
+                navController = navController,
+                deepLinkLoanId = pendingLoanId,
+                onDeepLinkConsumed = onDeepLinkConsumed
+            )
+        }
     }
 }
 

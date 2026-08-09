@@ -21,7 +21,7 @@ import com.loanmate.viewmodel.AnalyticsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
-    onBack: () -> Unit,
+    onBack: () -> Unit = {},
     onPayoffStrategy: () -> Unit = {},
     viewModel: AnalyticsViewModel = hiltViewModel()
 ) {
@@ -29,14 +29,7 @@ fun AnalyticsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Analytics") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                }
-            )
+            TopAppBar(title = { Text("Analytics") })
         }
     ) { padding ->
         LazyColumn(

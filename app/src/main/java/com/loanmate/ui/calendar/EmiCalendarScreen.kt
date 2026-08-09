@@ -32,7 +32,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmiCalendarScreen(
-    onBack: () -> Unit,
+    onBack: () -> Unit = {},
     viewModel: EmiCalendarViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -42,16 +42,7 @@ fun EmiCalendarScreen(
     var selectedDay by rememberSaveable { mutableStateOf<DayKey?>(null) }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("EMI Calendar") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
+        topBar = { TopAppBar(title = { Text("EMI Calendar") }) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             MonthHeader(

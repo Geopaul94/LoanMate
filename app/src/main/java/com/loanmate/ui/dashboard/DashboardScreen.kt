@@ -35,10 +35,6 @@ import com.loanmate.worker.DeleteCleanupWorker
 fun DashboardScreen(
     onAddLoan: () -> Unit,
     onLoanClick: (Long) -> Unit,
-    onAnalytics: () -> Unit,
-    onSettings: () -> Unit,
-    onAchievements: () -> Unit,
-    onCalendar: () -> Unit = {},
     savedStateHandle: SavedStateHandle? = null,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
@@ -89,12 +85,7 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                DashboardHeader(
-                    onAnalytics = onAnalytics,
-                    onSettings = onSettings,
-                    onAchievements = onAchievements,
-                    onCalendar = onCalendar
-                )
+                DashboardHeader()
             }
 
             if (uiState.currentStreak > 0 || uiState.longestStreak > 0) {
@@ -160,43 +151,18 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader(
-    onAnalytics: () -> Unit,
-    onSettings: () -> Unit,
-    onAchievements: () -> Unit,
-    onCalendar: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = "${DateUtils.getGreeting()}, 👋",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "Small payments today create big freedom tomorrow.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Row {
-            IconButton(onClick = onCalendar) {
-                Icon(Icons.Default.CalendarMonth, contentDescription = "Calendar")
-            }
-            IconButton(onClick = onAchievements) {
-                Icon(Icons.Default.EmojiEvents, contentDescription = "Achievements")
-            }
-            IconButton(onClick = onAnalytics) {
-                Icon(Icons.Default.BarChart, contentDescription = "Analytics")
-            }
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings")
-            }
-        }
+private fun DashboardHeader() {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "${DateUtils.getGreeting()}, 👋",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Small payments today create big freedom tomorrow.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
