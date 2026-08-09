@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Emerald splash background (matches the app-icon field) -->
+    <color name="emerald_splash">#0E6B57</color>
+</resources>

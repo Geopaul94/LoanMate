@@ -11,13 +11,13 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
@@ -34,8 +34,14 @@ class MainActivity : ComponentActivity() {
 
     private val pendingLoanId = mutableStateOf<Long?>(null)
 
+    // Hold the branded splash until the onboarding flag has loaded from disk,
+    // so the user never sees a blank/loading frame between splash and content.
+    @Volatile private var keepSplashOnScreen = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        splashScreen.setKeepOnScreenCondition { keepSplashOnScreen }
         enableEdgeToEdge()
         pendingLoanId.value = extractLoanId(intent)
         setContent {
@@ -43,8 +49,14 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val onboardingVm: OnboardingViewModel = hiltViewModel()
                     val hasSeen by onboardingVm.hasSeenOnboarding.collectAsStateWithLifecycle()
+
+                    // Release the splash the moment the flag resolves.
+                    if (hasSeen != null) {
+                        SideEffect { keepSplashOnScreen = false }
+                    }
+
                     when (hasSeen) {
-                        null -> SplashLoader()
+                        null -> Unit // splash still covering the screen
                         false -> OnboardingScreen(
                             viewModel = onboardingVm,
                             onFinished = { /* state flow will recompose into Main */ }
@@ -97,12 +109,5 @@ private fun AppShell(pendingLoanId: Long?, onDeepLinkConsumed: () -> Unit) {
                 onDeepLinkConsumed = onDeepLinkConsumed
             )
         }
-    }
-}
-
-@androidx.compose.runtime.Composable
-private fun SplashLoader() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
     }
 }

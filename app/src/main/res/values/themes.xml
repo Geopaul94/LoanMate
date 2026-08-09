@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.LoanMate" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Launch (splash) theme. Emerald field + gold logo, then hands off to
+         the normal app theme once the first frame is ready. -->
+    <style name="Theme.LoanMate.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/emerald_splash</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.LoanMate</item>
+    </style>
 </resources>
