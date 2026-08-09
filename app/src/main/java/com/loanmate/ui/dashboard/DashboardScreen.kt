@@ -202,7 +202,7 @@ private fun SummarySection(uiState: com.loanmate.viewmodel.DashboardUiState) {
                 title = "Completed",
                 value = uiState.completedLoansCount.toString(),
                 icon = Icons.Default.CheckCircle,
-                iconTint = Color(0xFF2E7D32),
+                iconTint = com.loanmate.ui.theme.SuccessGreen,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -211,14 +211,14 @@ private fun SummarySection(uiState: com.loanmate.viewmodel.DashboardUiState) {
                 title = "Total Outstanding",
                 value = CurrencyUtils.formatShort(uiState.totalOutstanding),
                 icon = Icons.Default.MoneyOff,
-                iconTint = Color(0xFFD32F2F),
+                iconTint = com.loanmate.ui.theme.DangerRed,
                 modifier = Modifier.weight(1f)
             )
             SummaryCard(
                 title = "Monthly EMI",
                 value = CurrencyUtils.formatShort(uiState.totalMonthlyEmi),
                 icon = Icons.Default.Schedule,
-                iconTint = Color(0xFFE65100),
+                iconTint = com.loanmate.ui.theme.WarningAmber,
                 modifier = Modifier.weight(1f)
             )
         }

@@ -20,19 +20,20 @@ fun DebtFreeCountdownCard(debtFreeDateMs: Long, modifier: Modifier = Modifier) {
     val remaining = EmiCalculator.timeUntil(debtFreeDateMs)
 
     val gradient = when {
-        remaining.totalDays < 365 -> listOf(Color(0xFF43A047), Color(0xFF66BB6A))      // green
-        remaining.totalDays < 1095 -> listOf(Color(0xFFFB8C00), Color(0xFFFFA726))     // orange (1-3y)
-        else -> listOf(Color(0xFF1E88E5), Color(0xFF42A5F5))                            // blue (3y+)
+        remaining.totalDays < 365 -> listOf(Color(0xFF12A085), Color(0xFF1FBE9E))     // emerald — almost there
+        remaining.totalDays < 1095 -> listOf(Color(0xFFF2A93B), Color(0xFFF6C14E))    // gold — 1-3y
+        else -> listOf(Color(0xFF0E6B57), Color(0xFF14907A))                          // deep teal — 3y+
     }
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Box(
             modifier = Modifier
-                .background(Brush.horizontalGradient(gradient))
+                .fillMaxWidth()
+                .background(Brush.linearGradient(gradient))
                 .padding(20.dp)
         ) {
             Column {
