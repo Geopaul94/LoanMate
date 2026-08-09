@@ -16,6 +16,15 @@ val localProps = Properties().apply {
 val googleOauthWebClientId: String =
     localProps.getProperty("GOOGLE_OAUTH_WEB_CLIENT_ID", "")
 
+// Release signing config, read from keystore.properties (gitignored).
+// If the file is absent (e.g. CI, or a fresh clone), release signing is
+// simply skipped so debug builds still work.
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
+}
+val hasReleaseKeystore = keystorePropsFile.exists()
+
 android {
     namespace = "com.loanmate"
     compileSdk = 35
@@ -31,13 +40,30 @@ android {
             "\"$googleOauthWebClientId\"")
     }
 
+    signingConfigs {
+        create("release") {
+            if (hasReleaseKeystore) {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // First release ships without R8 shrinking so nothing in the
+            // Hilt / Room / Compose / Google-Drive graph can be stripped.
+            // Enable minify + keep rules as a later, tested step.
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
