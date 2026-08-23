@@ -71,11 +71,12 @@ fun DashboardScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddLoan,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add Loan") }
-            )
+            // Icon-only FAB (not Extended): with a full 2x2 summary card grid on screen,
+            // a wide "Add Loan" pill can land on top of the Monthly EMI card at scroll
+            // position 0. A compact circular FAB only clips the card's corner, not its text.
+            FloatingActionButton(onClick = onAddLoan) {
+                Icon(Icons.Default.Add, contentDescription = "Add Loan")
+            }
         }
     ) { padding ->
         LazyColumn(

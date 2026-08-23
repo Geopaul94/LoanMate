@@ -15,3 +15,5 @@ First Play Store release.
 - Emerald + gold brand: committed palette, Plus Jakarta Sans / Inter type,
   custom app icon, branded splash, personality-filled empty states.
 - 57 unit tests across the calculation and detection logic.
+- Fix: "Add Loan" button on the dashboard was overlapping the Monthly EMI card
+  for any user with 3+ active loans; switched to a compact icon-only button.
