@@ -1,8 +1,10 @@
-# Copy this file to `keystore.properties` (which is gitignored) and fill in
-# your real values. NEVER commit the filled-in keystore.properties.
+# Copy this file to `key.properties` (which is gitignored) and fill in
+# your real values. NEVER commit the filled-in key.properties.
 #
-# storeFile is the path to your .jks keystore, relative to the project root.
-storeFile=loanmate-release.jks
+# storeFile is the absolute path to your .jks keystore — it lives outside
+# the repo, at C:\Users\geopa\<appname>-upload.jks (forward slashes work
+# fine in a Java properties file on Windows).
+storeFile=C:/Users/geopa/loanmate-upload.jks
 storePassword=YOUR_KEYSTORE_PASSWORD
-keyAlias=loanmate
+keyAlias=upload
 keyPassword=YOUR_KEY_PASSWORD

@@ -1,6 +1,6 @@
 # Release Guide — LoanMate
 
-How to build the signed Play Store bundle (AAB).
+How to build the signed Play Store bundle (AAB), Windows edition.
 
 ---
 
@@ -9,42 +9,54 @@ How to build the signed Play Store bundle (AAB).
 ⚠️ **The keystore is irreplaceable.** If you lose it (or forget its password),
 you can never publish an update to the same app on Play — you'd have to ship a
 brand-new listing. Back it up in **at least two safe places** (password manager
-+ encrypted cloud/USB).
++ encrypted cloud/USB) — see "Backing up" below.
 
 > If you enroll in **Play App Signing** (recommended, and the default now),
 > Google holds the real *app signing key*; the key below is your *upload key*.
 > If you ever lose the upload key, Google can reset it — but still treat it as
 > precious.
 
-Create it from the project root:
+The keystore lives **outside the repo**, at `C:\Users\geopa\loanmate-upload.jks`
+(same convention as every other app — never inside `D:\git clones\...`).
+From anywhere:
 
 ```bash
 keytool -genkeypair -v \
-  -keystore loanmate-release.jks \
-  -alias loanmate \
-  -keyalg RSA -keysize 2048 -validity 10000
+  -keystore C:/Users/geopa/loanmate-upload.jks \
+  -alias upload \
+  -keyalg RSA -keysize 2048 -validity 36500 \
+  -dname "CN=Geo Paulson, OU=Mobile Apps, O=Ghonestapps, L=Chalakudy, ST=Kerala, C=IN"
 ```
 
 `keytool` will prompt for:
-- **Keystore password** — choose a strong one, save it.
-- **Key password** — can be the same as the keystore password.
-- **Name / Org / City / State / Country** — your details (e.g. CN = your name,
-  C = IN). These sit in the certificate; not user-visible.
+- **Keystore password** — `Geopaul@7557` (standard password for all projects).
+- **Key password** — same, `Geopaul@7557`.
 
-Then create `keystore.properties` (gitignored) from the template:
+`-validity 36500` = 100 years, per the "app must remain valid for a century"
+rule. `-dname` pre-fills the Distinguished Name so keytool doesn't prompt for
+it interactively.
+
+Then create `key.properties` (gitignored) from the template:
 
 ```
-storeFile=loanmate-release.jks
-storePassword=<your keystore password>
-keyAlias=loanmate
-keyPassword=<your key password>
+storeFile=C:/Users/geopa/loanmate-upload.jks
+storePassword=Geopaul@7557
+keyAlias=upload
+keyPassword=Geopaul@7557
 ```
 
 ## Build the AAB
 
+Always build with Android Studio's bundled JDK (JBR), not the system default:
+
 ```bash
-JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.15/libexec/openjdk.jdk/Contents/Home \
-  ./gradlew bundleRelease
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
+./gradlew bundleRelease
+```
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+.\gradlew.bat bundleRelease
 ```
 
 Output: `app/build/outputs/bundle/release/app-release.aab`
@@ -53,20 +65,33 @@ Upload this file to the Play Console.
 ## Build a signed APK (for sideload testing, optional)
 
 ```bash
-JAVA_HOME=... ./gradlew assembleRelease
+JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleRelease
 # → app/build/outputs/apk/release/app-release.apk
 ```
 
 ## Backing up the keystore
 
-Keep copies of **all** of these together, off the repo:
-- `loanmate-release.jks`
-- `keystore.properties` (has the passwords)
-- The SHA-1 / SHA-256 fingerprints (also needed for Google Drive OAuth &
-  any other signed-cert integrations):
+After generating or modifying the keystore, create/update the backup folder
+`D:\PlayStoreBackups\loanmate_drive_playstore_backup\` (never inside a git
+repo). Standard contents — confirm every item exists before calling it done:
+
+- `loanmate-upload.jks` — the keystore
+- `key.properties` — copy (passwords, alias, storeFile path)
+- `README-LOANMATE.md` — passwords, alias, applicationId, SHA1/SHA256
+  fingerprints, versionCode/versionName, creation date
+- `LoanMate-v<X.Y.Z>-release.aab` — the exact bundle uploaded to Play Console
+- `store-assets/` — icon, feature graphic, screenshots
+- `store-listing-text.txt` — app title, short description, full description
+- `privacy-policy-text.txt` — the privacy policy text/URL used in Play Console
+- `local.properties.backup` — copy of local.properties
+
+Then tell Geo the full folder path so he can move it to Google Drive. Update
+the folder on every new release (new `.aab`, refreshed README).
+
+Get the fingerprints any time with:
 
 ```bash
-keytool -list -v -keystore loanmate-release.jks -alias loanmate
+keytool -list -v -keystore C:/Users/geopa/loanmate-upload.jks -alias upload -storepass Geopaul@7557
 ```
 
 ## Pre-release checklist

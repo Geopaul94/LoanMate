@@ -16,10 +16,10 @@ val localProps = Properties().apply {
 val googleOauthWebClientId: String =
     localProps.getProperty("GOOGLE_OAUTH_WEB_CLIENT_ID", "")
 
-// Release signing config, read from keystore.properties (gitignored).
+// Release signing config, read from key.properties (gitignored).
 // If the file is absent (e.g. CI, or a fresh clone), release signing is
 // simply skipped so debug builds still work.
-val keystorePropsFile = rootProject.file("keystore.properties")
+val keystorePropsFile = rootProject.file("key.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
@@ -45,7 +45,8 @@ android {
     signingConfigs {
         create("release") {
             if (hasReleaseKeystore) {
-                // storeFile path is relative to the project root.
+                // storeFile is an absolute path (the upload keystore lives
+                // outside the repo, at C:\Users\geopa\<appname>-upload.jks).
                 storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
                 storePassword = keystoreProps.getProperty("storePassword")
                 keyAlias = keystoreProps.getProperty("keyAlias")
