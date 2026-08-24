@@ -10,17 +10,19 @@ EMI & Loan Tracker — Android app. Personal/hobby project, targeting Play Store
 ## Identity / release
 - applicationId: `com.geo.loanmate` (Play). Code package (namespace):
   `com.loanmate` — intentionally different; only applicationId matters to Play.
-- versionName 1.0.1 / versionCode 2. minSdk 26, targetSdk 35.
+- versionName 1.0.3 / versionCode 4. minSdk 28, targetSdk 36, compileSdk 36.
 - Signing: upload keystore `loanmate-upload.jks`, kept **outside the repo** at
   `C:\Users\geopa\loanmate-upload.jks`, read via gitignored `key.properties`
   (root of this repo). Alias `upload`, passwords/DN/100-year validity per the
   global keystore standard. **Generated 2026-08-13** — SHA1
   `36:24:FA:C5:6E:D6:86:67:86:9F:8C:66:29:C4:B7:43:5D:1E:17:36`.
 - Backup folder: `D:\PlayStoreBackups\loanmate_drive_playstore_backup\` — fully
-  populated (keystore, key.properties, `LoanMate-v1.0.1-release.aab`, README,
+  populated (keystore, key.properties, `LoanMate-v1.0.2-release.aab`, README,
   store-listing-text.txt, privacy-policy-text.txt, store-assets/ with icon,
   feature graphic, and 5 screenshots). README-LOANMATE.md there has the full
-  checklist status and fingerprints.
+  checklist status and fingerprints. **Note:** superseded AABs (1.0.0, 1.0.1)
+  were deleted from the backup folder each time a new version was built —
+  always ask before deleting a file like this again.
 - Full release steps: `docs/RELEASE.md`. Drive setup: `docs/SETUP_DRIVE.md`.
 
 ## Build / run (Windows — this is the active dev machine)
@@ -123,12 +125,11 @@ Since UI automation is blocked, populate realistic data directly in Room:
   rebuilds can lag ~1-2 min after a push — don't panic if `curl` shows stale
   content right after pushing.
 
-## Current state (as of 2026-08-13)
-- Fully release-candidate: keystore generated, signed AAB built + verified,
-  release build smoke-tested on device (clean launch, no crashes — R8 is off
-  so this mainly confirms signing/Hilt/Room wiring, not obfuscation issues),
-  privacy policy live, store listing text + 5 screenshots done. Everything in
-  the backup folder checklist is checked off except `local.properties.backup`.
+## Current state (as of 2026-08-24)
+- v1.0.3 (versionCode 4) AAB built 2026-08-24. SDK bumped to compileSdk/targetSdk 36,
+  minSdk 28. AAB is in the backup folder (`LoanMate-v1.0.3-release.aab`), ready to
+  upload for the Play Console re-submission after the Financial Services appeal.
+  Everything in the backup folder checklist is checked off except `local.properties.backup`.
 - **Fixed this session**: "Add Loan" FAB was overlapping the Monthly EMI card
   on the dashboard for any user with 3+ active loans (Scaffold FAB pinned
   bottom-right collided with the summary card grid at initial scroll
