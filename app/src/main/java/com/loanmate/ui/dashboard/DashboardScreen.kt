@@ -70,6 +70,7 @@ fun DashboardScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             // Icon-only FAB (not Extended): with a full 2x2 summary card grid on screen,
             // a wide "Add Loan" pill can land on top of the Monthly EMI card at scroll

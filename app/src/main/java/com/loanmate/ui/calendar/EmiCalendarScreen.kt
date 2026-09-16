@@ -42,7 +42,8 @@ fun EmiCalendarScreen(
     var selectedDay by rememberSaveable { mutableStateOf<DayKey?>(null) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("EMI Calendar") }) }
+        topBar = { TopAppBar(title = { Text("EMI Calendar") }) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             MonthHeader(
