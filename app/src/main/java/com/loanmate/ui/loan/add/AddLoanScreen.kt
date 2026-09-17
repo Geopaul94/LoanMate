@@ -1,7 +1,11 @@
 package com.loanmate.ui.loan.add
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -26,6 +30,12 @@ import com.loanmate.utils.DateUtils
 import com.loanmate.viewmodel.AddLoanViewModel
 import java.util.*
 
+import androidx.compose.animation.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddLoanScreen(
@@ -35,6 +45,8 @@ fun AddLoanScreen(
 ) {
     val context = LocalContext.current
     val form by viewModel.form.collectAsStateWithLifecycle()
+    var currentStep by remember { mutableIntStateOf(1) }
+    val totalSteps = 3
 
     LaunchedEffect(loanId) {
         if (loanId != null) viewModel.loadLoan(loanId)
@@ -47,201 +59,314 @@ fun AddLoanScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (loanId == null) "Add Loan" else "Edit Loan") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                title = { 
+                    Column {
+                        Text(if (loanId == null) "New Loan" else "Edit Loan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Step $currentStep of $totalSteps", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                actions = {
-                    TextButton(
-                        onClick = { viewModel.saveLoan(loanId, context) },
-                        enabled = !form.isLoading
-                    ) {
-                        Text("Save", fontWeight = FontWeight.SemiBold)
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (currentStep > 1) currentStep-- else onBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
+        },
+        bottomBar = {
+            Surface(
+                tonalElevation = 8.dp,
+                shadowElevation = 16.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (currentStep > 1) {
+                        OutlinedButton(
+                            onClick = { currentStep-- },
+                            modifier = Modifier.weight(1f).height(56.dp),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text("Previous")
+                        }
+                    }
+                    
+                    Button(
+                        onClick = {
+                            if (currentStep < totalSteps) {
+                                currentStep++
+                            } else {
+                                viewModel.saveLoan(loanId, context)
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        enabled = !form.isLoading
+                    ) {
+                        Text(if (currentStep == totalSteps) "Save Loan" else "Continue", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SectionHeader("Basic Information")
-
-            OutlinedTextField(
-                value = form.loanName,
-                onValueChange = { v -> viewModel.update { copy(loanName = v) } },
-                label = { Text("Loan Name *") },
-                isError = form.errors.containsKey("loanName"),
-                supportingText = form.errors["loanName"]?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = form.bankName,
-                onValueChange = { v -> viewModel.update { copy(bankName = v) } },
-                label = { Text("Bank / NBFC Name *") },
-                isError = form.errors.containsKey("bankName"),
-                supportingText = form.errors["bankName"]?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            LoanTypeDropdown(
-                selected = form.loanType,
-                onSelect = { v -> viewModel.update { copy(loanType = v) } }
-            )
-
-            SectionHeader("Loan Details")
-
-            OutlinedTextField(
-                value = form.principalAmount,
-                onValueChange = { v ->
-                    viewModel.update { copy(principalAmount = v) }
-                    viewModel.recalculateEmi()
-                },
-                label = { Text("Principal Amount *") },
-                leadingIcon = { Text("₹") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = form.errors.containsKey("principalAmount"),
-                supportingText = form.errors["principalAmount"]?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = form.interestRate,
-                    onValueChange = { v ->
-                        viewModel.update { copy(interestRate = v) }
-                        viewModel.recalculateEmi()
+            StepProgressIndicator(currentStep = currentStep, totalSteps = totalSteps)
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                AnimatedContent(
+                    targetState = currentStep,
+                    transitionSpec = {
+                        if (targetState > initialState) {
+                            slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut()
+                        } else {
+                            slideInHorizontally { -it } + fadeIn() togetherWith slideOutHorizontally { it } + fadeOut()
+                        }.using(SizeTransform(clip = false))
                     },
-                    label = { Text("Interest Rate %") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )
-                InterestTypeDropdown(
-                    selected = form.interestType,
-                    onSelect = { v ->
-                        viewModel.update { copy(interestType = v) }
-                        viewModel.recalculateEmi()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = form.tenureValue,
-                    onValueChange = { v ->
-                        viewModel.update { copy(tenureValue = v) }
-                        viewModel.recalculateEmi()
-                    },
-                    label = { Text("Tenure *") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = form.errors.containsKey("tenureValue"),
-                    supportingText = form.errors["tenureValue"]?.let { { Text(it) } },
-                    modifier = Modifier.weight(1f)
-                )
-                TenureUnitDropdown(
-                    selected = form.tenureUnit,
-                    onSelect = { v ->
-                        viewModel.update { copy(tenureUnit = v) }
-                        viewModel.recalculateEmi()
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            if (form.calculatedEmi > 0) {
-                EmiPreviewCard(emi = form.calculatedEmi)
-            }
-
-            OutlinedTextField(
-                value = form.monthlyEmi,
-                onValueChange = { v -> viewModel.update { copy(monthlyEmi = v) } },
-                label = { Text("Monthly EMI (override)") },
-                leadingIcon = { Text("₹") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                placeholder = {
-                    if (form.calculatedEmi > 0) Text(CurrencyUtils.format(form.calculatedEmi))
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            SectionHeader("Dates")
-
-            DatePickerField(
-                label = "Loan Taken Date",
-                timestamp = form.loanTakenDate,
-                onDateSelected = { ts ->
-                    viewModel.update { copy(loanTakenDate = ts) }
-                    viewModel.recalculateEmi()
+                    label = "StepContent"
+                ) { step ->
+                    when (step) {
+                        1 -> BasicDetailsStep(form = form, viewModel = viewModel)
+                        2 -> FinancialsStep(form = form, viewModel = viewModel)
+                        3 -> AdditionalDetailsStep(form = form, viewModel = viewModel)
+                    }
                 }
-            )
-
-            DatePickerField(
-                label = "First EMI Date",
-                timestamp = form.firstEmiDate,
-                onDateSelected = { ts -> viewModel.update { copy(firstEmiDate = ts) } }
-            )
-
-            if (form.loanEndDate > 0) {
-                Text(
-                    text = "Loan End Date: ${DateUtils.formatDate(form.loanEndDate)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                
+                Spacer(modifier = Modifier.height(100.dp))
             }
+        }
+    }
+}
 
-            SectionHeader("Additional Details")
+@Composable
+private fun StepProgressIndicator(currentStep: Int, totalSteps: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(totalSteps) { index ->
+            val step = index + 1
+            val isActive = step <= currentStep
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isActive) MaterialTheme.colorScheme.primary 
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+            )
+        }
+    }
+}
 
+@Composable
+private fun BasicDetailsStep(form: com.loanmate.viewmodel.AddLoanFormState, viewModel: AddLoanViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        StepHeader("Loan Basics", "What should we call this loan and who is the lender?")
+        
+        OutlinedTextField(
+            value = form.loanName,
+            onValueChange = { v -> viewModel.update { copy(loanName = v) } },
+            label = { Text("Loan Name (e.g. Home Loan)") },
+            placeholder = { Text("Enter a friendly name") },
+            isError = form.errors.containsKey("loanName"),
+            supportingText = form.errors["loanName"]?.let { { Text(it) } },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        OutlinedTextField(
+            value = form.bankName,
+            onValueChange = { v -> viewModel.update { copy(bankName = v) } },
+            label = { Text("Bank / NBFC Name") },
+            placeholder = { Text("Who gave you this loan?") },
+            isError = form.errors.containsKey("bankName"),
+            supportingText = form.errors["bankName"]?.let { { Text(it) } },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        LoanTypeDropdown(
+            selected = form.loanType,
+            onSelect = { v -> viewModel.update { copy(loanType = v) } }
+        )
+    }
+}
+
+@Composable
+private fun FinancialsStep(form: com.loanmate.viewmodel.AddLoanFormState, viewModel: AddLoanViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        StepHeader("Financial Details", "How much did you borrow and at what rate?")
+
+        OutlinedTextField(
+            value = form.principalAmount,
+            onValueChange = { v ->
+                viewModel.update { copy(principalAmount = v) }
+                viewModel.recalculateEmi()
+            },
+            label = { Text("Principal Amount") },
+            leadingIcon = { Text("₹", fontWeight = FontWeight.Bold) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            isError = form.errors.containsKey("principalAmount"),
+            supportingText = form.errors["principalAmount"]?.let { { Text(it) } },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(
-                value = form.outstandingAmount,
-                onValueChange = { v -> viewModel.update { copy(outstandingAmount = v) } },
-                label = { Text("Outstanding Amount") },
-                leadingIcon = { Text("₹") },
+                value = form.interestRate,
+                onValueChange = { v ->
+                    viewModel.update { copy(interestRate = v) }
+                    viewModel.recalculateEmi()
+                },
+                label = { Text("Rate %") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.weight(0.8f),
+                shape = RoundedCornerShape(16.dp)
             )
+            InterestTypeDropdown(
+                selected = form.interestType,
+                onSelect = { v ->
+                    viewModel.update { copy(interestType = v) }
+                    viewModel.recalculateEmi()
+                },
+                modifier = Modifier.weight(1.2f)
+            )
+        }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = form.processingFee,
-                    onValueChange = { v -> viewModel.update { copy(processingFee = v) } },
-                    label = { Text("Processing Fee") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = form.insuranceCharges,
-                    onValueChange = { v -> viewModel.update { copy(insuranceCharges = v) } },
-                    label = { Text("Insurance") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(
+                value = form.tenureValue,
+                onValueChange = { v ->
+                    viewModel.update { copy(tenureValue = v) }
+                    viewModel.recalculateEmi()
+                },
+                label = { Text("Tenure") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                isError = form.errors.containsKey("tenureValue"),
+                supportingText = form.errors["tenureValue"]?.let { { Text(it) } },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            TenureUnitDropdown(
+                selected = form.tenureUnit,
+                onSelect = { v ->
+                    viewModel.update { copy(tenureUnit = v) }
+                    viewModel.recalculateEmi()
+                },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (form.calculatedEmi > 0) {
+            PremiumEmiPreview(emi = form.calculatedEmi)
+        }
+
+        OutlinedTextField(
+            value = form.monthlyEmi,
+            onValueChange = { v -> viewModel.update { copy(monthlyEmi = v) } },
+            label = { Text("Actual Monthly EMI") },
+            placeholder = { if (form.calculatedEmi > 0) Text(CurrencyUtils.format(form.calculatedEmi)) },
+            leadingIcon = { Text("₹", fontWeight = FontWeight.Bold) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            supportingText = { Text("Optional: Override if your bank EMI differs from calculation.") }
+        )
+    }
+}
+
+@Composable
+private fun AdditionalDetailsStep(form: com.loanmate.viewmodel.AddLoanFormState, viewModel: AddLoanViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        StepHeader("Final Details", "When did this start and any other details?")
+
+        DatePickerField(
+            label = "Loan Start Date",
+            timestamp = form.loanTakenDate,
+            onDateSelected = { ts ->
+                viewModel.update { copy(loanTakenDate = ts) }
+                viewModel.recalculateEmi()
             }
+        )
 
-            OutlinedTextField(
-                value = form.loanAccountNumber,
-                onValueChange = { v -> viewModel.update { copy(loanAccountNumber = v) } },
-                label = { Text("Account Number (optional)") },
-                modifier = Modifier.fillMaxWidth()
-            )
+        DatePickerField(
+            label = "First EMI Due Date",
+            timestamp = form.firstEmiDate,
+            onDateSelected = { ts -> viewModel.update { copy(firstEmiDate = ts) } }
+        )
 
-            OutlinedTextField(
-                value = form.notes,
-                onValueChange = { v -> viewModel.update { copy(notes = v) } },
-                label = { Text("Notes") },
-                minLines = 3,
-                modifier = Modifier.fillMaxWidth()
-            )
+        OutlinedTextField(
+            value = form.loanAccountNumber,
+            onValueChange = { v -> viewModel.update { copy(loanAccountNumber = v) } },
+            label = { Text("Account Number") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        )
 
-            Spacer(modifier = Modifier.height(32.dp))
+        OutlinedTextField(
+            value = form.notes,
+            onValueChange = { v -> viewModel.update { copy(notes = v) } },
+            label = { Text("Notes / Remarks") },
+            minLines = 3,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+}
+
+@Composable
+private fun StepHeader(title: String, subtitle: String) {
+    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+        Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun PremiumEmiPreview(emi: Double) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Estimated EMI", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(CurrencyUtils.format(emi), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+            }
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Calculate, null, tint = MaterialTheme.colorScheme.onPrimary)
+                }
+            }
         }
     }
 }

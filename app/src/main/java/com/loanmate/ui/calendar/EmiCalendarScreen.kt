@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -29,6 +32,9 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmiCalendarScreen(
@@ -42,49 +48,66 @@ fun EmiCalendarScreen(
     var selectedDay by rememberSaveable { mutableStateOf<DayKey?>(null) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("EMI Calendar") }) },
+        topBar = { 
+            TopAppBar(
+                title = { Text("EMI Calendar", fontWeight = FontWeight.Bold) }
+            ) 
+        },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            MonthHeader(
-                year = year,
-                month = month,
-                onPrev = {
-                    if (month == 0) { month = 11; year -= 1 } else month -= 1
-                },
-                onNext = {
-                    if (month == 11) { month = 0; year += 1 } else month += 1
+            Card(
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    MonthHeader(
+                        year = year,
+                        month = month,
+                        onPrev = {
+                            if (month == 0) { month = 11; year -= 1 } else month -= 1
+                        },
+                        onNext = {
+                            if (month == 11) { month = 0; year += 1 } else month += 1
+                        }
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+                    WeekdayHeader()
+                    Spacer(Modifier.height(8.dp))
+                    CalendarGrid(
+                        year = year,
+                        month = month,
+                        today = DayKey(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)),
+                        occurrencesByDay = uiState.occurrencesByDay,
+                        onDayClick = { day -> selectedDay = day }
+                    )
                 }
-            )
+            }
 
-            Spacer(Modifier.height(12.dp))
-            WeekdayHeader()
-            Spacer(Modifier.height(4.dp))
-            CalendarGrid(
-                year = year,
-                month = month,
-                today = DayKey(now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)),
-                occurrencesByDay = uiState.occurrencesByDay,
-                onDayClick = { day -> selectedDay = day }
-            )
+            Spacer(Modifier.height(24.dp))
 
-            Spacer(Modifier.height(16.dp))
-
-            // Day-of-month occurrences appear in a scrollable list below the calendar
             val selected = selectedDay
             if (selected != null) {
                 val list = uiState.occurrencesByDay[selected].orEmpty()
                 if (list.isNotEmpty()) {
                     DaySection(day = selected, occurrences = list, onClose = { selectedDay = null })
                 }
-            }
-
-            if (uiState.occurrencesByDay.isEmpty() && !uiState.isLoading) {
+            } else if (uiState.occurrencesByDay.isEmpty() && !uiState.isLoading) {
                 com.loanmate.ui.components.EmptyState(
                     emoji = "🗓️",
-                    title = "Nothing due yet",
-                    message = "Once you have an active loan, its EMI dates will light up here."
+                    title = "No EMIs this month",
+                    message = "Your schedule is clear. Relax and enjoy your financial peace."
                 )
+            } else {
+                Text(
+                    "Upcoming Payments",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                )
+                // Could add a list of upcoming EMIs here for a better empty selection state
             }
         }
     }
@@ -169,40 +192,32 @@ private fun DayCell(
     Box(
         modifier = modifier
             .padding(2.dp)
-            .height(56.dp)
-            .clickable(enabled = day != null && hasEvents, onClick = onClick),
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(enabled = day != null, onClick = onClick)
+            .then(
+                if (isToday) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                else Modifier
+            ),
         contentAlignment = Alignment.Center
     ) {
         if (day == null) return@Box
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .then(
-                        if (isToday) Modifier.background(MaterialTheme.colorScheme.primary, CircleShape)
-                        else Modifier
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    day.toString(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isToday) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurface,
-                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
-                )
-            }
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(
+                day.toString(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isToday) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium
+            )
             if (hasEvents) {
+                Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     repeat(eventCount.coerceAtMost(3)) {
                         Box(modifier = Modifier
                             .padding(horizontal = 1.dp)
-                            .size(5.dp)
-                            .background(MaterialTheme.colorScheme.tertiary, CircleShape))
-                    }
-                    if (eventCount > 3) {
-                        Text("+", style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.tertiary)
+                            .size(4.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape))
                     }
                 }
             }
@@ -217,36 +232,56 @@ private fun DaySection(
     onClose: () -> Unit
 ) {
     val cal = Calendar.getInstance().apply { set(day.year, day.month, day.day) }
-    val dateLabel = SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(cal.time)
+    val dateLabel = SimpleDateFormat("EEEE, dd MMMM", Locale.getDefault()).format(cal.time)
     val total = occurrences.sumOf { it.amount }
 
-    Card(shape = RoundedCornerShape(16.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
+    Card(
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f))
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(dateLabel, style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold)
-                TextButton(onClick = onClose) { Text("Close") }
+                verticalAlignment = Alignment.Top) {
+                Column {
+                    Text(dateLabel, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold)
+                    Text("Total due: ${CurrencyUtils.format(total)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold)
+                }
+                IconButton(onClick = onClose, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Close, "Close", modifier = Modifier.size(16.dp))
+                }
             }
-            Text("Total due: ${CurrencyUtils.format(total)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
-                items(occurrences) { occ ->
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Column {
-                            Text(occ.loanName, style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium)
-                            Text(occ.bankName, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(16.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                occurrences.forEach { occ ->
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("🏦", fontSize = 18.sp)
+                                }
+                            }
+                            Column {
+                                Text(occ.loanName, style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold)
+                                Text(occ.bankName, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                         Text(CurrencyUtils.format(occ.amount),
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold)
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }

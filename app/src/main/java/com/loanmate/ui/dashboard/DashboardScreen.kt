@@ -5,6 +5,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -72,10 +79,12 @@ fun DashboardScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
-            // Icon-only FAB (not Extended): with a full 2x2 summary card grid on screen,
-            // a wide "Add Loan" pill can land on top of the Monthly EMI card at scroll
-            // position 0. A compact circular FAB only clips the card's corner, not its text.
-            FloatingActionButton(onClick = onAddLoan) {
+            FloatingActionButton(
+                onClick = onAddLoan,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Loan")
             }
         }
@@ -85,7 +94,7 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
                 DashboardHeader()
@@ -106,7 +115,7 @@ fun DashboardScreen(
 
             uiState.debtFreeDate?.let { dfDate ->
                 item {
-                    DebtFreeCountdownCard(debtFreeDateMs = dfDate)
+                    PremiumDebtFreeCard(debtFreeDateMs = dfDate)
                 }
             }
 
@@ -115,57 +124,179 @@ fun DashboardScreen(
             }
 
             item {
-                Text(
-                    text = "Active Loans",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Active Loans",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    TextButton(onClick = { /* View all */ }) {
+                        Text("View All", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
 
             val activeLoans = uiState.loans.filter { it.status == LoanStatus.ACTIVE }
             if (activeLoans.isEmpty()) {
                 item {
-                    if (searchQuery.isNotBlank()) {
-                        EmptyState(
-                            emoji = "🔍",
-                            title = "No matches",
-                            message = "No loans or banks match \"$searchQuery\". Try a different search.",
-                            compact = true
-                        )
-                    } else {
-                        EmptyState(
-                            emoji = "🏦",
-                            title = "Start your journey",
-                            message = "Add your first loan and watch yourself march toward debt-free freedom.",
-                            ctaLabel = "Add your first loan",
-                            onCta = onAddLoan
-                        )
-                    }
+                    EmptyState(
+                        emoji = "🏦",
+                        title = "No Active Loans",
+                        message = "Start your journey to financial freedom today.",
+                        ctaLabel = "Add your first loan",
+                        onCta = onAddLoan
+                    )
                 }
             } else {
                 items(activeLoans, key = { it.id }) { loan ->
-                    LoanProgressCard(
+                    PremiumLoanCard(
                         loan = loan,
                         onClick = { onLoanClick(loan.id) }
                     )
                 }
             }
 
-            val completedLoans = uiState.loans.filter { it.status == LoanStatus.COMPLETED }
-            if (completedLoans.isNotEmpty()) {
-                item {
+            item { Spacer(modifier = Modifier.height(100.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun PremiumDebtFreeCard(debtFreeDateMs: Long) {
+    Card(
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
+                        )
+                    )
+                )
+                .padding(24.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("🎉", fontSize = 20.sp)
+                        }
+                    }
                     Text(
-                        text = "Completed",
+                        "Freedom Countdown",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-                items(completedLoans, key = { "completed_${it.id}" }) { loan ->
-                    LoanProgressCard(loan = loan, onClick = { onLoanClick(loan.id) })
+                
+                DebtFreeCountdownCard(debtFreeDateMs = debtFreeDateMs)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PremiumLoanCard(loan: com.loanmate.data.local.LoanEntity, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = com.loanmate.ui.components.loanTypeColor(loan.loanType).copy(alpha = 0.1f),
+                modifier = Modifier.size(56.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(loan.loanType.emoji, fontSize = 24.sp)
                 }
             }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(loan.loanName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold)
+                Text(loan.bankName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    CurrencyUtils.formatShort(loan.outstandingAmount),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Outstanding",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
 
-            item { Spacer(modifier = Modifier.height(80.dp)) }
+@Composable
+private fun SummarySection(uiState: com.loanmate.viewmodel.DashboardUiState) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        PremiumSummaryCard(
+            title = "Outstanding",
+            value = CurrencyUtils.formatShort(uiState.totalOutstanding),
+            icon = Icons.Default.Payments,
+            modifier = Modifier.weight(1f),
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+            contentColor = com.loanmate.ui.theme.DangerRed
+        )
+        PremiumSummaryCard(
+            title = "Monthly EMI",
+            value = CurrencyUtils.formatShort(uiState.totalMonthlyEmi),
+            icon = Icons.Default.EventRepeat,
+            modifier = Modifier.weight(1f),
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            contentColor = MaterialTheme.colorScheme.primary
+        )
+    }
+}
+
+@Composable
+private fun PremiumSummaryCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    containerColor: Color,
+    contentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(icon, null, tint = contentColor, modifier = Modifier.size(24.dp))
+            Column {
+                Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = contentColor)
+                Text(title, style = MaterialTheme.typography.labelMedium, color = contentColor.copy(alpha = 0.7f))
+            }
         }
     }
 }
@@ -207,41 +338,4 @@ private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
     )
 }
 
-@Composable
-private fun SummarySection(uiState: com.loanmate.viewmodel.DashboardUiState) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard(
-                title = "Active Loans",
-                value = uiState.activeLoanCount.toString(),
-                icon = Icons.Default.AccountBalance,
-                iconTint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
-            )
-            SummaryCard(
-                title = "Completed",
-                value = uiState.completedLoansCount.toString(),
-                icon = Icons.Default.CheckCircle,
-                iconTint = com.loanmate.ui.theme.SuccessGreen,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SummaryCard(
-                title = "Total Outstanding",
-                value = CurrencyUtils.formatShort(uiState.totalOutstanding),
-                icon = Icons.Default.MoneyOff,
-                iconTint = com.loanmate.ui.theme.DangerRed,
-                modifier = Modifier.weight(1f)
-            )
-            SummaryCard(
-                title = "Monthly EMI",
-                value = CurrencyUtils.formatShort(uiState.totalMonthlyEmi),
-                icon = Icons.Default.Schedule,
-                iconTint = com.loanmate.ui.theme.WarningAmber,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
 

@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -21,6 +22,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.loanmate.data.local.AchievementEntity
 import com.loanmate.viewmodel.AchievementsViewModel
 
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AchievementsScreen(
@@ -30,7 +34,7 @@ fun AchievementsScreen(
     val achievements by viewModel.achievements.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Rewards") }) },
+        topBar = { TopAppBar(title = { Text("Rewards & Badges", fontWeight = FontWeight.Bold) }) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         LazyColumn(
@@ -38,68 +42,77 @@ fun AchievementsScreen(
                 .fillMaxSize()
                 .padding(padding),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             val earned = achievements.filter { it.isEarned }
             val locked = achievements.filter { !it.isEarned }
 
             if (earned.isNotEmpty()) {
                 item {
-                    Text("Earned (${earned.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text("Earned Badges", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
                 }
                 items(earned) { achievement ->
-                    AchievementCard(achievement = achievement, earned = true)
+                    PremiumAchievementCard(achievement = achievement, earned = true)
                 }
             }
 
             if (locked.isNotEmpty()) {
                 item {
-                    Text("Locked (${locked.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+                    Text("Road to Freedom", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 8.dp))
                 }
                 items(locked) { achievement ->
-                    AchievementCard(achievement = achievement, earned = false)
+                    PremiumAchievementCard(achievement = achievement, earned = false)
                 }
             }
+            
+            item { Spacer(Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-private fun AchievementCard(achievement: AchievementEntity, earned: Boolean) {
+private fun PremiumAchievementCard(achievement: AchievementEntity, earned: Boolean) {
+    val containerColor = if (earned) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+    
     Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (earned) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceContainerLow
-        ),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (earned) 4.dp else 0.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(if (earned) 1f else 0.6f)
+            .then(if (!earned) Modifier.alpha(0.6f) else Modifier)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Surface(
-                shape = CircleShape,
-                color = if (earned) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                modifier = Modifier.size(52.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = if (earned) achievement.emoji else "🔒",
-                        fontSize = 24.sp
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(64.dp)
+                    .background(
+                        if (earned) Brush.sweepGradient(listOf(Color(0xFFFFD700), Color(0xFFFFA500), Color(0xFFFFD700)))
+                        else Brush.linearGradient(listOf(Color.Gray, Color.LightGray)),
+                        CircleShape,
+                        alpha = if (earned) 0.15f else 0.1f
                     )
-                }
+            ) {
+                Text(
+                    text = if (earned) achievement.emoji else "🔒",
+                    fontSize = 32.sp,
+                    modifier = Modifier.graphicsLayer(alpha = if (earned) 1f else 0.4f)
+                )
             }
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     achievement.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (earned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     achievement.description,
@@ -107,13 +120,19 @@ private fun AchievementCard(achievement: AchievementEntity, earned: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (earned && achievement.earnedAt != null) {
-                    Text(
-                        "Earned",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (earned) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Spacer(Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            "UNLOCKED",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
                 }
             }
         }

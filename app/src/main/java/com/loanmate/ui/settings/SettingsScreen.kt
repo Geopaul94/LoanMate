@@ -27,6 +27,12 @@ import com.loanmate.viewmodel.BackupViewModel
 import com.loanmate.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
+import androidx.compose.ui.draw.scale
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -56,67 +62,80 @@ fun SettingsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { TopAppBar(title = { Text("Settings") }) },
+        topBar = { TopAppBar(title = { Text("Settings", fontWeight = FontWeight.Bold) }) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
-                SectionHeader("Appearance")
-                ToggleRow(Icons.Default.DarkMode, "Dark Mode",
-                    "Follow system or force dark", uiState.isDarkMode, viewModel::setDarkMode)
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                SectionHeader("Notifications")
-                ToggleRow(Icons.Default.Notifications, "EMI Reminders",
-                    "Get notified before EMI due dates",
-                    uiState.notificationsEnabled, viewModel::setNotifications)
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                SectionHeader("Security")
-                ToggleRow(Icons.Default.Fingerprint, "Biometric Lock",
-                    "Use fingerprint or face to open app",
-                    uiState.biometricEnabled, viewModel::setBiometric)
-                ToggleRow(Icons.Default.VisibilityOff, "Hide Sensitive Values",
-                    "Mask loan amounts on dashboard",
-                    uiState.hideValues, viewModel::setHideValues)
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                SectionHeader("Data")
-                ActionRow(Icons.Default.PictureAsPdf, "Export to PDF",
-                    "Generate a printable loan statement") {
-                    backupViewModel.exportPdf(context)
-                }
-                ActionRow(Icons.Default.CloudUpload, "Backup data",
-                    "Save all loans + payments to a JSON file") {
-                    backupViewModel.exportBackup(context)
-                }
-                ActionRow(Icons.Default.CloudDownload, "Restore from backup",
-                    "Pick a previously saved JSON file") {
-                    restorePicker.launch(arrayOf("application/json", "*/*"))
+                SettingsGroup("PREFERENCES") {
+                    ToggleRow(Icons.Default.DarkMode, "Dark Mode",
+                        "Follow system or force dark", uiState.isDarkMode, viewModel::setDarkMode)
+                    ToggleRow(Icons.Default.Notifications, "EMI Reminders",
+                        "Get notified before EMI due dates",
+                        uiState.notificationsEnabled, viewModel::setNotifications)
                 }
             }
+            
             item {
-                Spacer(Modifier.height(8.dp))
-                SectionHeader("Cloud sync")
-                DriveBackupSection(
-                    onShowSnackbar = { msg ->
-                        scope.launch { snackbarHostState.showSnackbar(msg) }
+                SettingsGroup("SECURITY") {
+                    ToggleRow(Icons.Default.Fingerprint, "Biometric Lock",
+                        "Use fingerprint or face to open app",
+                        uiState.biometricEnabled, viewModel::setBiometric)
+                    ToggleRow(Icons.Default.VisibilityOff, "Privacy Mode",
+                        "Mask loan amounts on dashboard",
+                        uiState.hideValues, viewModel::setHideValues)
+                }
+            }
+            
+            item {
+                SettingsGroup("DATA MANAGEMENT") {
+                    ActionRow(Icons.Default.PictureAsPdf, "Export to PDF",
+                        "Generate printable loan statement") {
+                        backupViewModel.exportPdf(context)
                     }
-                )
+                    ActionRow(Icons.Default.CloudUpload, "Cloud Backup",
+                        "Save loans + payments to JSON") {
+                        backupViewModel.exportBackup(context)
+                    }
+                    ActionRow(Icons.Default.CloudDownload, "Restore Backup",
+                        "Restore from a JSON file") {
+                        restorePicker.launch(arrayOf("application/json", "*/*"))
+                    }
+                }
             }
+
             item {
-                Spacer(Modifier.height(8.dp))
-                SectionHeader("About")
-                ActionRow(Icons.Default.Info, "About LoanMate", "Version 1.0") {}
-                ActionRow(Icons.Default.Policy, "Privacy Policy", "Read our privacy policy") {}
+                SettingsGroup("CLOUD SYNC") {
+                    DriveBackupSection(
+                        onShowSnackbar = { msg ->
+                            scope.launch { snackbarHostState.showSnackbar(msg) }
+                        }
+                    )
+                }
             }
+
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "LoanMate v1.0.3",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                    TextButton(onClick = { /* Privacy Policy */ }) {
+                        Text("Privacy Policy", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            
+            item { Spacer(Modifier.height(80.dp)) }
         }
     }
 
@@ -124,7 +143,7 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { pendingRestoreConfirm = null },
             title = { Text("Restore from backup?") },
-            text = { Text("This will replace all current loans, payments, and achievements with the contents of the backup file. This cannot be undone.") },
+            text = { Text("This will replace all current loans, payments, and achievements. This cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = {
                     pendingRestoreConfirm = null
@@ -139,6 +158,88 @@ fun SettingsScreen(
                 TextButton(onClick = { pendingRestoreConfirm = null }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.padding(start = 8.dp)
+        )
+        Card(
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ToggleRow(
+    icon: ImageVector, title: String, subtitle: String,
+    checked: Boolean, onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(
+            checked = checked, 
+            onCheckedChange = onToggle,
+            modifier = Modifier.scale(0.8f)
+        )
+    }
+}
+
+@Composable
+private fun ActionRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+            }
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
     }
 }
 
@@ -160,65 +261,3 @@ private fun readUriAsText(context: android.content.Context, uri: Uri): String? {
     } catch (e: Exception) { null }
 }
 
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(bottom = 4.dp)
-    )
-}
-
-@Composable
-private fun ToggleRow(
-    icon: ImageVector, title: String, subtitle: String,
-    checked: Boolean, onToggle: (Boolean) -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            IconChip(icon = icon, tint = MaterialTheme.colorScheme.primary)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(checked = checked, onCheckedChange = onToggle)
-        }
-    }
-}
-
-@Composable
-private fun ActionRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            IconChip(icon = icon, tint = MaterialTheme.colorScheme.primary)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
