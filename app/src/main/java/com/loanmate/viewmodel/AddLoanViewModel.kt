@@ -77,7 +77,9 @@ class AddLoanViewModel @Inject constructor(
         }
     }
 
-    fun update(block: AddLoanFormState.() -> AddLoanFormState) = _form.update { it.block() }
+    fun update(block: AddLoanFormState.() -> AddLoanFormState) {
+        _form.update { it.block().copy(errors = emptyMap()) }
+    }
 
     fun recalculateEmi() {
         val f = _form.value
@@ -87,6 +89,24 @@ class AddLoanViewModel @Inject constructor(
         val emi = EmiCalculator.calculateEmi(principal, rate, tenure, f.tenureUnit, f.interestType)
         val endDate = EmiCalculator.calculateLoanEndDate(f.loanTakenDate, tenure, f.tenureUnit)
         _form.update { it.copy(calculatedEmi = emi, loanEndDate = endDate) }
+    }
+
+    fun validateStep(step: Int): Boolean {
+        val f = _form.value
+        val stepErrors = buildMap {
+            when (step) {
+                1 -> {
+                    if (f.loanName.isBlank()) put("loanName", "Loan name is required")
+                    if (f.bankName.isBlank()) put("bankName", "Bank name is required")
+                }
+                2 -> {
+                    if (f.principalAmount.toDoubleOrNull() == null) put("principalAmount", "Enter a valid amount")
+                    if (f.tenureValue.toIntOrNull() == null) put("tenureValue", "Enter a valid tenure")
+                }
+            }
+        }
+        _form.update { it.copy(errors = stepErrors) }
+        return stepErrors.isEmpty()
     }
 
     fun saveLoan(editingLoanId: Long?, context: Context) {

@@ -10,7 +10,7 @@ EMI & Loan Tracker — Android app. Personal/hobby project, targeting Play Store
 ## Identity / release
 - applicationId: `com.geo.loanmate` (Play). Code package (namespace):
   `com.loanmate` — intentionally different; only applicationId matters to Play.
-- versionName 1.0.3 / versionCode 4. minSdk 28, targetSdk 36, compileSdk 36.
+- versionName 1.0.4 / versionCode 5. minSdk 28, targetSdk 36, compileSdk 36.
 - Signing: upload keystore `loanmate-upload.jks`, kept **outside the repo** at
   `C:\Users\geopa\loanmate-upload.jks`, read via gitignored `key.properties`
   (root of this repo). Alias `upload`, passwords/DN/100-year validity per the

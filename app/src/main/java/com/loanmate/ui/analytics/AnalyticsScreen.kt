@@ -45,8 +45,7 @@ fun AnalyticsScreen(
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Analytics", fontWeight = FontWeight.Bold) })
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        }
     ) { padding ->
         LazyColumn(
             modifier = Modifier

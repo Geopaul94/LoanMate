@@ -15,7 +15,7 @@ Gemini CLI, Aider, Windsurf, Zed…). Read this file first, then `CLAUDE.md`.
 | **Package / applicationId** | `com.geo.loanmate` |
 | **Stack** | Kotlin + Jetpack Compose (Android only) |
 | **SDK levels** | compileSdk 36 · targetSdk 36 · minSdk 28 |
-| **Version** | 1.0.3 (versionCode 4) |
+| **Version** | 1.0.4 (versionCode 5) |
 | **Repo** | https://github.com/Geopaul94/LoanMate.git |
 | **Distribution** | Google Play — production quality from day one |
 | **Owner** | Geo Paulson · geopaul94@gmail.com |

@@ -62,8 +62,7 @@ fun SettingsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { TopAppBar(title = { Text("Settings", fontWeight = FontWeight.Bold) }) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        topBar = { TopAppBar(title = { Text("Settings", fontWeight = FontWeight.Bold) }) }
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),

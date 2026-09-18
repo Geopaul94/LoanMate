@@ -52,8 +52,7 @@ fun EmiCalendarScreen(
             TopAppBar(
                 title = { Text("EMI Calendar", fontWeight = FontWeight.Bold) }
             ) 
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
             Card(

@@ -93,7 +93,6 @@ private fun AppShell(pendingLoanId: Long?, onDeepLinkConsumed: () -> Unit) {
     val showBottomBar = shouldShowBottomBar(navController)
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             AnimatedVisibility(
                 visible = showBottomBar,

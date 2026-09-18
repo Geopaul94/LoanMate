@@ -28,6 +28,7 @@ import com.loanmate.data.model.TenureUnit
 import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.DateUtils
 import com.loanmate.viewmodel.AddLoanViewModel
+import kotlinx.coroutines.launch
 import java.util.*
 
 import androidx.compose.animation.*
@@ -35,6 +36,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,7 +49,10 @@ fun AddLoanScreen(
     viewModel: AddLoanViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val form by viewModel.form.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     var currentStep by remember { mutableIntStateOf(1) }
     val totalSteps = 3
 
@@ -56,7 +64,26 @@ fun AddLoanScreen(
         if (form.isSaved) onBack()
     }
 
+    // Auto-navigate to first error step if save fails
+    LaunchedEffect(form.errors) {
+        if (form.errors.isNotEmpty()) {
+            val errorKeys = form.errors.keys
+            val targetStep = when {
+                errorKeys.any { it in listOf("loanName", "bankName") } -> 1
+                errorKeys.any { it in listOf("principalAmount", "tenureValue") } -> 2
+                else -> currentStep
+            }
+            if (targetStep != currentStep) {
+                currentStep = targetStep
+            }
+            scope.launch {
+                snackbarHostState.showSnackbar("Please correct the errors before saving")
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { 
@@ -99,7 +126,13 @@ fun AddLoanScreen(
                     Button(
                         onClick = {
                             if (currentStep < totalSteps) {
-                                currentStep++
+                                if (viewModel.validateStep(currentStep)) {
+                                    currentStep++
+                                } else {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Please fill all required fields correctly")
+                                    }
+                                }
                             } else {
                                 viewModel.saveLoan(loanId, context)
                             }
@@ -118,6 +151,11 @@ fun AddLoanScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                }
         ) {
             StepProgressIndicator(currentStep = currentStep, totalSteps = totalSteps)
             

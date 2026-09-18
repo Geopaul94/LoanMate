@@ -77,7 +77,6 @@ fun DashboardScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddLoan,

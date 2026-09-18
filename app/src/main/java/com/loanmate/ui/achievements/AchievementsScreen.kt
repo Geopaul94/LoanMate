@@ -34,8 +34,7 @@ fun AchievementsScreen(
     val achievements by viewModel.achievements.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Rewards & Badges", fontWeight = FontWeight.Bold) }) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        topBar = { TopAppBar(title = { Text("Rewards & Badges", fontWeight = FontWeight.Bold) }) }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
