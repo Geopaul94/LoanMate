@@ -152,6 +152,10 @@ dependencies {
     // MPAndroidChart
     implementation(libs.mpandroidchart)
 
+    // Play Store Updates
+    implementation(libs.play.app.update)
+    implementation(libs.play.app.update.ktx)
+
     // Biometric
     implementation(libs.biometric)
 

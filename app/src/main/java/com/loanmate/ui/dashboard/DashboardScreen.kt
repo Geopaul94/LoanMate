@@ -38,19 +38,31 @@ import com.loanmate.utils.DateUtils
 import com.loanmate.viewmodel.DashboardViewModel
 import com.loanmate.worker.DeleteCleanupWorker
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.loanmate.viewmodel.DriveBackupViewModel
+import com.loanmate.ui.settings.DriveBackupSection
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onAddLoan: () -> Unit,
     onLoanClick: (Long) -> Unit,
     savedStateHandle: SavedStateHandle? = null,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    driveViewModel: DriveBackupViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val driveUiState by driveViewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var showDriveRestore by remember { mutableStateOf(false) }
+
+    val signInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result -> driveViewModel.handleSignInResult(result.data) }
 
     // Watch for a deleted-loan handoff from LoanDetailsScreen
     LaunchedEffect(savedStateHandle) {
@@ -142,13 +154,32 @@ fun DashboardScreen(
             val activeLoans = uiState.loans.filter { it.status == LoanStatus.ACTIVE }
             if (activeLoans.isEmpty()) {
                 item {
-                    EmptyState(
-                        emoji = "🏦",
-                        title = "No Active Loans",
-                        message = "Start your journey to financial freedom today.",
-                        ctaLabel = "Add your first loan",
-                        onCta = onAddLoan
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        EmptyState(
+                            emoji = "🏦",
+                            title = "No Active Loans",
+                            message = "Start your journey to financial freedom today.",
+                            ctaLabel = "Add your first loan",
+                            onCta = onAddLoan
+                        )
+                        
+                        if (driveUiState.isConfigured) {
+                            TextButton(
+                                onClick = {
+                                    if (driveUiState.accountEmail == null) {
+                                        signInLauncher.launch(driveViewModel.signInIntent())
+                                    } else {
+                                        showDriveRestore = true
+                                    }
+                                },
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                Icon(Icons.Default.CloudDownload, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Restore from Cloud")
+                            }
+                        }
+                    }
                 }
             } else {
                 items(activeLoans, key = { it.id }) { loan ->
@@ -160,6 +191,22 @@ fun DashboardScreen(
             }
 
             item { Spacer(modifier = Modifier.height(100.dp)) }
+        }
+    }
+
+    if (showDriveRestore) {
+        ModalBottomSheet(
+            onDismissRequest = { showDriveRestore = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Box(modifier = Modifier.padding(bottom = 32.dp)) {
+                DriveBackupSection(
+                    viewModel = driveViewModel,
+                    onShowSnackbar = { msg ->
+                        scope.launch { snackbarHostState.showSnackbar(msg) }
+                    }
+                )
+            }
         }
     }
 }

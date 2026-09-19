@@ -1,5 +1,5 @@
 [versions]
-agp = "8.5.2"
+agp = "8.13.2"
 kotlin = "2.0.21"
 ksp = "2.0.21-1.0.27"
 hilt = "2.51.1"
@@ -13,6 +13,7 @@ coil = "2.7.0"
 lottie = "6.5.0"
 accompanist = "0.34.0"
 mpandroidchart = "v3.1.0"
+app-update = "2.1.0"
 biometric = "1.1.0"
 security-crypto = "1.1.0-alpha06"
 activity-compose = "1.9.2"
@@ -82,6 +83,8 @@ accompanist-permissions = { group = "com.google.accompanist", name = "accompanis
 
 # MPAndroidChart
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" }
+play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "app-update" }
+play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "app-update" }
 
 # Biometric
 biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }

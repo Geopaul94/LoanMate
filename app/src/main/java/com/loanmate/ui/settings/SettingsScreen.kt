@@ -118,19 +118,60 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsGroup("ABOUT & SUPPORT") {
+                    ActionRow(Icons.Default.Policy, "Privacy Policy", "Read our terms and data safety") {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://geopaul94.github.io/LoanMate/privacy.html"))
+                        context.startActivity(intent)
+                    }
+                    ActionRow(Icons.Default.Share, "Share LoanMate", "Spread the word to friends and family") {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "Check out LoanMate, the best way to track your loans and EMIs! Download here: https://play.google.com/store/apps/details?id=com.geo.loanmate")
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share LoanMate via"))
+                    }
+                    ActionRow(Icons.Default.Feedback, "Feedback & Bug Report", "Suggest a feature or report an issue") {
+                        val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:geopaul94@gmail.com")
+                            putExtra(Intent.EXTRA_SUBJECT, "LoanMate Feedback (v1.0.4)")
+                        }
+                        try {
+                            context.startActivity(emailIntent)
+                        } catch (e: Exception) {
+                            scope.launch { snackbarHostState.showSnackbar("No email app found") }
+                        }
+                    }
+                    ActionRow(Icons.Default.Star, "Rate on Play Store", "Support us with a 5-star rating") {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.geo.loanmate")).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.geo.loanmate"))
+                            context.startActivity(webIntent)
+                        }
+                    }
+                }
+            }
+
+            item {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        "LoanMate v1.0.3",
+                        "LoanMate v1.0.4",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Bold
                     )
-                    TextButton(onClick = { /* Privacy Policy */ }) {
-                        Text("Privacy Policy", style = MaterialTheme.typography.labelSmall)
-                    }
+                    Text(
+                        "Made with ❤️ for financial freedom",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
                 }
             }
             
