@@ -16,6 +16,7 @@ import com.loanmate.ui.calendar.EmiCalendarScreen
 import com.loanmate.ui.payoff.PayoffStrategyScreen
 import com.loanmate.ui.settings.SettingsScreen
 import com.loanmate.ui.achievements.AchievementsScreen
+import com.loanmate.ui.loan.details.AmortizationScheduleScreen
 
 const val SAVED_STATE_DELETED_LOAN_ID = "deletedLoanId"
 
@@ -38,6 +39,7 @@ fun LoanMateNavHost(
             DashboardScreen(
                 onAddLoan = { navController.navigate(Screen.AddLoan.createRoute()) },
                 onLoanClick = { loanId -> navController.navigate(Screen.LoanDetails.createRoute(loanId)) },
+                onSettings = { navController.navigate(Screen.Settings.route) },
                 savedStateHandle = backStackEntry.savedStateHandle
             )
         }
@@ -70,6 +72,7 @@ fun LoanMateNavHost(
                 onBack = { navController.popBackStack() },
                 onEdit = { navController.navigate(Screen.AddLoan.createRoute(loanId)) },
                 onCalculators = { navController.navigate(Screen.Calculator.createRoute(loanId)) },
+                onAmortization = { id -> navController.navigate(Screen.AmortizationSchedule.createRoute(id)) },
                 onDeleted = { id ->
                     navController.previousBackStackEntry
                         ?.savedStateHandle
@@ -104,6 +107,14 @@ fun LoanMateNavHost(
 
         composable(Screen.Achievements.route) {
             AchievementsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(
+            route = Screen.AmortizationSchedule.route,
+            arguments = listOf(navArgument("loanId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val loanId = backStackEntry.arguments!!.getLong("loanId")
+            AmortizationScheduleScreen(loanId = loanId, onBack = { navController.popBackStack() })
         }
     }
 }

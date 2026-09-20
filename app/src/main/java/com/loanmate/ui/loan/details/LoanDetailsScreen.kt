@@ -38,6 +38,23 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.unit.sp
 import com.loanmate.ui.components.IconChip
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.provider.OpenableColumns
+import com.loanmate.viewmodel.DocumentViewModel
+import com.loanmate.data.local.DocumentEntity
+import com.loanmate.data.local.DocumentType
+import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
+import androidx.compose.ui.platform.LocalContext
+import android.database.Cursor
+
+import androidx.compose.ui.text.style.TextAlign
+import nl.dionsegijn.konfetti.compose.KonfettiView
+import nl.dionsegijn.konfetti.core.Party
+import nl.dionsegijn.konfetti.core.emitter.Emitter
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,11 +63,29 @@ fun LoanDetailsScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onCalculators: () -> Unit,
+    onAmortization: (Long) -> Unit,
     onDeleted: (Long) -> Unit,
-    viewModel: LoanDetailsViewModel = hiltViewModel()
+    viewModel: LoanDetailsViewModel = hiltViewModel(),
+    docViewModel: DocumentViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val documents by docViewModel.getDocuments(loanId).collectAsState(emptyList())
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val docLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            val name = context.contentResolver.query(it, null, null, null, null)?.use { cursor ->
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst()) {
+                    cursor.getString(index)
+                } else null
+            } ?: "document"
+            docViewModel.addDocument(context, loanId, it, name)
+        }
+    }
 
     LaunchedEffect(loanId) { viewModel.loadLoan(loanId) }
     LaunchedEffect(Unit) {
@@ -104,6 +139,15 @@ fun LoanDetailsScreen(
 
             item { PremiumLoanHero(loan = loan) }
 
+            if (uiState.showCelebration) {
+                item {
+                    DebtFreeCelebration(
+                        loanName = loan.loanName,
+                        onDismiss = viewModel::dismissCelebration
+                    )
+                }
+            }
+
             if (loan.status == LoanStatus.ACTIVE) {
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -128,6 +172,18 @@ fun LoanDetailsScreen(
                             Text("Strategies", fontWeight = FontWeight.Bold)
                         }
                     }
+                }
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { onAmortization(loan.id) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.ListAlt, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("View Full Amortization Schedule", fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -157,6 +213,53 @@ fun LoanDetailsScreen(
                 }
             }
 
+            item {
+                Text(
+                    "Documents Vault",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp)
+                )
+            }
+
+            if (documents.isNotEmpty()) {
+                items(documents, key = { it.id }) { doc ->
+                    PremiumDocumentItem(
+                        document = doc,
+                        onOpen = {
+                            try {
+                                val file = File(doc.filePath)
+                                val uri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.fileprovider",
+                                    file
+                                )
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, context.contentResolver.getType(uri))
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(intent, "Open Document"))
+                            } catch (_: Exception) {
+                                // handle error
+                            }
+                        },
+                        onDelete = { docViewModel.deleteDocument(doc) }
+                    )
+                }
+            }
+
+            item {
+                OutlinedButton(
+                    onClick = { docLauncher.launch(arrayOf("application/pdf", "image/*")) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Icon(Icons.Default.UploadFile, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add Document", fontWeight = FontWeight.Bold)
+                }
+            }
+
             item { Spacer(Modifier.height(40.dp)) }
         }
     }
@@ -179,6 +282,64 @@ fun LoanDetailsScreen(
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun PremiumDocumentItem(
+    document: DocumentEntity,
+    onOpen: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        onClick = onOpen,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = when (document.documentType) {
+                            DocumentType.PDF -> Icons.Default.Description
+                            DocumentType.IMAGE -> Icons.Default.Image
+                            else -> Icons.Default.InsertDriveFile
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    document.fileName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    DateUtils.formatDate(document.addedAt),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+            }
+        }
     }
 }
 
@@ -341,6 +502,70 @@ private fun StatCard(label: String, value: String, icon: androidx.compose.ui.gra
             }
         }
     }
+}
+
+@Composable
+private fun DebtFreeCelebration(loanName: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text("Share Success")
+            }
+        },
+        title = {
+            Text(
+                "Congratulations! 🎉",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "You have successfully paid off your \"$loanName\" loan. You are one step closer to complete financial freedom!",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("DEBT FREE", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        Text(loanName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                        Text("Successfully Closed", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        },
+        shape = RoundedCornerShape(32.dp)
+    )
+
+    KonfettiView(
+        modifier = Modifier.fillMaxSize(),
+        parties = listOf(
+            Party(
+                speed = 0f,
+                maxSpeed = 30f,
+                damping = 0.9f,
+                spread = 360,
+                colors = listOf(0xfce18a, 0xff726d, 0xf4306d, 0xbdaead),
+                emitter = Emitter(duration = 100, TimeUnit.MILLISECONDS).max(100),
+                position = nl.dionsegijn.konfetti.core.Position.Relative(0.5, 0.3)
+            )
+        )
+    )
 }
 
 @Composable

@@ -46,6 +46,17 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    fun exportAmortization(context: Context, loan: com.loanmate.data.local.LoanEntity, schedule: List<com.loanmate.utils.AmortizationCalculator.AmortizationMonth>) {
+        viewModelScope.launch {
+            try {
+                val file = PdfExporter.exportAmortization(context, loan, schedule)
+                _events.emit(BackupEvent.SharePdf(authority(context), file))
+            } catch (e: Exception) {
+                _events.emit(BackupEvent.Toast("Export failed: ${e.message ?: "unknown"}"))
+            }
+        }
+    }
+
     fun exportBackup(context: Context) {
         viewModelScope.launch {
             try {

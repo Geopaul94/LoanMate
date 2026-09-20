@@ -14,6 +14,7 @@ lottie = "6.5.0"
 accompanist = "0.34.0"
 mpandroidchart = "v3.1.0"
 app-update = "2.1.0"
+konfetti = "2.0.4"
 biometric = "1.1.0"
 security-crypto = "1.1.0-alpha06"
 activity-compose = "1.9.2"
@@ -85,6 +86,7 @@ accompanist-permissions = { group = "com.google.accompanist", name = "accompanis
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" }
 play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "app-update" }
 play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "app-update" }
+konfetti = { group = "nl.dionsegijn", name = "konfetti-compose", version.ref = "konfetti" }
 
 # Biometric
 biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }

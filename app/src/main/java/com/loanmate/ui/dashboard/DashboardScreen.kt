@@ -48,6 +48,7 @@ import com.loanmate.ui.settings.DriveBackupSection
 fun DashboardScreen(
     onAddLoan: () -> Unit,
     onLoanClick: (Long) -> Unit,
+    onSettings: () -> Unit,
     savedStateHandle: SavedStateHandle? = null,
     viewModel: DashboardViewModel = hiltViewModel(),
     driveViewModel: DriveBackupViewModel = hiltViewModel()
@@ -130,6 +131,15 @@ fun DashboardScreen(
                 }
             }
 
+            uiState.prepaymentInsight?.let { insight ->
+                item {
+                    com.loanmate.ui.components.SmartInsightCard(
+                        insight = insight,
+                        onAmountChange = viewModel::onExtraAmountChange
+                    )
+                }
+            }
+
             item {
                 SummarySection(uiState = uiState)
             }
@@ -152,41 +162,67 @@ fun DashboardScreen(
             }
 
             val activeLoans = uiState.loans.filter { it.status == LoanStatus.ACTIVE }
-            if (activeLoans.isEmpty()) {
+            val completedLoans = uiState.loans.filter { it.status == LoanStatus.COMPLETED }
+            
+            if (uiState.loans.isEmpty() && !uiState.isLoading) {
                 item {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        EmptyState(
-                            emoji = "🏦",
-                            title = "No Active Loans",
-                            message = "Start your journey to financial freedom today.",
-                            ctaLabel = "Add your first loan",
-                            onCta = onAddLoan
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        // Always show the nudge if loans are empty, even if not configured yet
+                        // This ensures the user sees the option on a fresh install
+                        com.loanmate.ui.components.BackupNudgeCard(
+                            onRestore = {
+                                if (!driveUiState.isConfigured) {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Cloud sync setup required in settings")
+                                    }
+                                } else if (driveUiState.accountEmail == null) {
+                                    signInLauncher.launch(driveViewModel.signInIntent())
+                                } else {
+                                    showDriveRestore = true
+                                }
+                            },
+                            onSettings = onSettings,
+                            isBusy = driveUiState.isBusy
                         )
                         
-                        if (driveUiState.isConfigured) {
-                            TextButton(
-                                onClick = {
-                                    if (driveUiState.accountEmail == null) {
-                                        signInLauncher.launch(driveViewModel.signInIntent())
-                                    } else {
-                                        showDriveRestore = true
-                                    }
-                                },
-                                modifier = Modifier.padding(top = 8.dp)
-                            ) {
-                                Icon(Icons.Default.CloudDownload, null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Restore from Cloud")
-                            }
-                        }
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 40.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+
+                        EmptyState(
+                            emoji = "🏦",
+                            title = "Your journey starts here",
+                            message = "Add your first loan to start tracking your path to financial freedom.",
+                            ctaLabel = "Add Loan",
+                            onCta = onAddLoan
+                        )
                     }
                 }
-            } else {
+            } else if (activeLoans.isNotEmpty()) {
                 items(activeLoans, key = { it.id }) { loan ->
                     PremiumLoanCard(
                         loan = loan,
                         onClick = { onLoanClick(loan.id) }
                     )
+                }
+            }
+            
+            if (completedLoans.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "Completed Loans",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                items(completedLoans, key = { "completed_${it.id}" }) { loan ->
+                    PremiumLoanCard(loan = loan, onClick = { onLoanClick(loan.id) })
                 }
             }
 

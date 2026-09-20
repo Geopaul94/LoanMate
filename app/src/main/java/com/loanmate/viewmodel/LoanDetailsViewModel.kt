@@ -20,7 +20,8 @@ data class LoanDetailsUiState(
     val payments: List<PaymentHistoryEntity> = emptyList(),
     val isLoading: Boolean = true,
     val milestoneMessage: String? = null,
-    val showMilestone: Boolean = false
+    val showMilestone: Boolean = false,
+    val showCelebration: Boolean = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -33,6 +34,7 @@ class LoanDetailsViewModel @Inject constructor(
     private val _loanId = MutableStateFlow<Long?>(null)
     private val _milestone = MutableStateFlow<String?>(null)
     private val _showMilestone = MutableStateFlow(false)
+    private val _showCelebration = MutableStateFlow(false)
 
     // One-shot event: emit deleted loanId so Dashboard can show Undo snackbar
     private val _deleteEvent = MutableSharedFlow<Long>()
@@ -45,14 +47,16 @@ class LoanDetailsViewModel @Inject constructor(
                 loanRepository.getLoanById(id),
                 paymentRepository.getPaymentsByLoanId(id),
                 _milestone,
-                _showMilestone
-            ) { loan, payments, milestone, showMilestone ->
+                _showMilestone,
+                _showCelebration
+            ) { loan, payments, milestone, showMilestone, showCelebration ->
                 LoanDetailsUiState(
                     loan = loan,
                     payments = payments,
                     isLoading = false,
                     milestoneMessage = milestone,
-                    showMilestone = showMilestone
+                    showMilestone = showMilestone,
+                    showCelebration = showCelebration
                 )
             }
         }
@@ -91,13 +95,21 @@ class LoanDetailsViewModel @Inject constructor(
                 )
             )
 
-            val progress = EmiCalculator.getProgressPercent(newCompleted, loan.totalEmis)
-            val message = EmiCalculator.getMilestoneMessage(progress)
-            if (message != null) {
-                _milestone.value = message
-                _showMilestone.value = true
+            if (isCompleted) {
+                _showCelebration.value = true
+            } else {
+                val progress = EmiCalculator.getProgressPercent(newCompleted, loan.totalEmis)
+                val message = EmiCalculator.getMilestoneMessage(progress)
+                if (message != null) {
+                    _milestone.value = message
+                    _showMilestone.value = true
+                }
             }
         }
+    }
+
+    fun dismissCelebration() {
+        _showCelebration.value = false
     }
 
     fun dismissMilestone() {

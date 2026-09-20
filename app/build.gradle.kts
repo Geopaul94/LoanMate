@@ -155,6 +155,7 @@ dependencies {
     // Play Store Updates
     implementation(libs.play.app.update)
     implementation(libs.play.app.update.ktx)
+    implementation(libs.konfetti)
 
     // Biometric
     implementation(libs.biometric)

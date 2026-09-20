@@ -26,6 +26,7 @@ import com.loanmate.ui.shell.LoanMateBottomBar
 import com.loanmate.ui.shell.shouldShowBottomBar
 import com.loanmate.ui.theme.LoanMateTheme
 import com.loanmate.viewmodel.OnboardingViewModel
+import com.loanmate.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 import androidx.compose.material3.SnackbarHost
@@ -55,7 +56,10 @@ class MainActivity : ComponentActivity() {
         appUpdateHelper.checkForUpdates()
 
         setContent {
-            LoanMateTheme {
+            val settingsVm: SettingsViewModel = hiltViewModel()
+            val settingsState by settingsVm.uiState.collectAsStateWithLifecycle()
+
+            LoanMateTheme(darkTheme = settingsState.isDarkMode) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val onboardingVm: OnboardingViewModel = hiltViewModel()
                     val hasSeen by onboardingVm.hasSeenOnboarding.collectAsStateWithLifecycle()
@@ -144,6 +148,7 @@ private fun AppShell(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             AnimatedVisibility(
@@ -155,7 +160,11 @@ private fun AppShell(
             }
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
             LoanMateNavHost(
                 navController = navController,
                 deepLinkLoanId = pendingLoanId,
