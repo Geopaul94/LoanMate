@@ -38,7 +38,7 @@ class ProductionBackupManager @Inject constructor(
         // 1. Flush WAL
         db.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").close()
 
-        val loans = db.loanDao().getAllLoansOnce()
+        val loans = db.loanDao().getAllLoansIncludeTrashOnce()
         val payments = db.paymentHistoryDao().getAllPaymentsOnce()
         val achievements = db.achievementDao().getAllAchievementsOnce()
         val documents = db.documentDao().getAllDocumentsOnce()

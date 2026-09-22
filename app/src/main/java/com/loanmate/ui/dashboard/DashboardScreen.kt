@@ -40,9 +40,6 @@ import com.loanmate.worker.DeleteCleanupWorker
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import com.loanmate.viewmodel.DriveBackupViewModel
-import com.loanmate.ui.settings.DriveBackupSection
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
@@ -50,20 +47,13 @@ fun DashboardScreen(
     onLoanClick: (Long) -> Unit,
     onSettings: () -> Unit,
     savedStateHandle: SavedStateHandle? = null,
-    viewModel: DashboardViewModel = hiltViewModel(),
-    driveViewModel: DriveBackupViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val driveUiState by driveViewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var showDriveRestore by remember { mutableStateOf(false) }
-
-    val signInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result -> driveViewModel.handleSignInResult(result.data) }
 
     // Watch for a deleted-loan handoff from LoanDetailsScreen
     LaunchedEffect(savedStateHandle) {
@@ -202,19 +192,8 @@ fun DashboardScreen(
                         // Always show the nudge if loans are empty, even if not configured yet
                         // This ensures the user sees the option on a fresh install
                         com.loanmate.ui.components.BackupNudgeCard(
-                            onRestore = {
-                                if (!driveUiState.isConfigured) {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Cloud sync setup required in settings")
-                                    }
-                                } else if (driveUiState.accountEmail == null) {
-                                    signInLauncher.launch(driveViewModel.signInIntent())
-                                } else {
-                                    showDriveRestore = true
-                                }
-                            },
-                            onSettings = onSettings,
-                            isBusy = driveUiState.isBusy
+                            onRestore = onSettings,
+                            onSettings = onSettings
                         )
                         
                         HorizontalDivider(
@@ -260,22 +239,6 @@ fun DashboardScreen(
             }
 
             item { Spacer(modifier = Modifier.height(100.dp)) }
-        }
-    }
-
-    if (showDriveRestore) {
-        ModalBottomSheet(
-            onDismissRequest = { showDriveRestore = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Box(modifier = Modifier.padding(bottom = 32.dp)) {
-                DriveBackupSection(
-                    viewModel = driveViewModel,
-                    onShowSnackbar = { msg ->
-                        scope.launch { snackbarHostState.showSnackbar(msg) }
-                    }
-                )
-            }
         }
     }
 }

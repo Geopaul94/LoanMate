@@ -48,4 +48,6 @@ EMI & Loan Tracker — Android app. Personal/hobby project, targeting Play Store
   - **Biometric Lock**: App locks automatically on launch if enabled and prompts for biometric or device credentials.
   - **Privacy Mode**: All loan values, balances, EMIs, and calculator results are masked with "••••" across all screens when enabled.
   - **Production-grade ZIP Backups**: Updated local and Drive backup engine to package Room database, attachments, and manifests in a secure ZIP format with 5-layer overwrite protection and rollback capabilities.
+  - **Trash Bin**: Added Trash Bin management in Settings with ability to view soft-deleted loans, restore individual items, permanently delete items, or empty trash bin. Items in trash auto-delete after 30 days.
+  - **Complete Backup/Restore**: Soft-deleted loans (trash bin items) and their payments/documents are now fully preserved during local ZIP export/import and Google Drive Cloud Sync.
   - **Release APK**: Signed release APK pushed directly to the connected device's `Download/` folder (`LoanMate-v1.0.5-release.apk`).

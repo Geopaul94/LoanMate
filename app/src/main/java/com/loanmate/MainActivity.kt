@@ -46,7 +46,7 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.loanmate.utils.AppUpdateHelper
-import com.loanmate.worker.DriveSyncWorker
+import com.loanmate.worker.SyncWorker
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -164,19 +164,7 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun scheduleDriveSync() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
-        val request = OneTimeWorkRequestBuilder<DriveSyncWorker>()
-            .setConstraints(constraints)
-            .build()
-
-        WorkManager.getInstance(this).enqueueUniqueWork(
-            "drive_sync_on_launch",
-            ExistingWorkPolicy.REPLACE,
-            request
-        )
+        com.loanmate.worker.SyncWorker.runOnce(this)
     }
 
     companion object {

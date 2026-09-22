@@ -83,13 +83,25 @@ fun LoanMateBottomBar(navController: NavHostController) {
                 selected = selected,
                 onClick = {
                     if (!selected) {
-                        navController.navigate(tab.route) {
-                            // Pop back to start so tapping Home always returns to Dashboard root
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                        if (tab.route == Screen.Dashboard.route) {
+                            val popped = navController.popBackStack(Screen.Dashboard.route, inclusive = false)
+                            if (!popped) {
+                                navController.navigate(Screen.Dashboard.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
-                            launchSingleTop = true
-                            restoreState = true
+                        } else {
+                            navController.navigate(tab.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
                     }
                 },

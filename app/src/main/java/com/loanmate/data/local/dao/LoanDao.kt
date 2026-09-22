@@ -14,8 +14,20 @@ interface LoanDao {
     @Query("SELECT * FROM loans WHERE isDeleted = 0 ORDER BY createdAt DESC")
     suspend fun getAllLoansOnce(): List<LoanEntity>
 
+    @Query("SELECT * FROM loans ORDER BY createdAt DESC")
+    suspend fun getAllLoansIncludeTrashOnce(): List<LoanEntity>
+
+    @Query("SELECT * FROM loans WHERE isDeleted = 1 ORDER BY deletedAt DESC")
+    fun observeTrashLoans(): Flow<List<LoanEntity>>
+
     @Query("DELETE FROM loans")
     suspend fun deleteAllLoans()
+
+    @Query("DELETE FROM loans WHERE isDeleted = 1")
+    suspend fun emptyTrash()
+
+    @Query("UPDATE loans SET isDeleted = 0, deletedAt = NULL WHERE isDeleted = 1")
+    suspend fun restoreAllFromTrash()
 
     @Query("SELECT * FROM loans WHERE isDeleted = 0 AND status = :status ORDER BY createdAt DESC")
     fun getLoansByStatus(status: LoanStatus): Flow<List<LoanEntity>>

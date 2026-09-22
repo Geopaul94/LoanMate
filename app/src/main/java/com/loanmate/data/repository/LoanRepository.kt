@@ -12,6 +12,12 @@ class LoanRepository @Inject constructor(private val loanDao: LoanDao) {
 
     fun getAllLoans(): Flow<List<LoanEntity>> = loanDao.getAllLoans()
 
+    suspend fun getAllLoansOnce(): List<LoanEntity> = loanDao.getAllLoansOnce()
+
+    suspend fun getAllLoansIncludeTrashOnce(): List<LoanEntity> = loanDao.getAllLoansIncludeTrashOnce()
+
+    fun observeTrashLoans(): Flow<List<LoanEntity>> = loanDao.observeTrashLoans()
+
     fun getActiveLoans(): Flow<List<LoanEntity>> = loanDao.getLoansByStatus(LoanStatus.ACTIVE)
 
     fun getLoanById(id: Long): Flow<LoanEntity?> = loanDao.getLoanById(id)
@@ -38,4 +44,11 @@ class LoanRepository @Inject constructor(private val loanDao: LoanDao) {
 
     // Permanent delete — called by cleanup worker
     suspend fun hardDeleteLoan(id: Long) = loanDao.hardDeleteLoan(id)
+
+    suspend fun emptyTrash() = loanDao.emptyTrash()
+
+    suspend fun restoreAllFromTrash() = loanDao.restoreAllFromTrash()
+
+    suspend fun purgeOldDeleted(cutoff: Long = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000) =
+        loanDao.purgeOldDeleted(cutoff)
 }
