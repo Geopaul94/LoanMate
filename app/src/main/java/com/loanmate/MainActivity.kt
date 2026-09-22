@@ -48,7 +48,6 @@ import androidx.work.WorkManager
 import com.loanmate.utils.AppUpdateHelper
 import com.loanmate.worker.SyncWorker
 import javax.inject.Inject
-
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
