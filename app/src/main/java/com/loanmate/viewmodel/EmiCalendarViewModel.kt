@@ -1,5 +1,8 @@
 package com.loanmate.viewmodel
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.loanmate.data.repository.LoanRepository
@@ -10,6 +13,7 @@ import javax.inject.Inject
 
 data class EmiCalendarUiState(
     val occurrencesByDay: Map<DayKey, List<EmiOccurrenceGenerator.Occurrence>> = emptyMap(),
+    val hideValues: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -17,16 +21,22 @@ data class DayKey(val year: Int, val month: Int, val day: Int)
 
 @HiltViewModel
 class EmiCalendarViewModel @Inject constructor(
-    loanRepository: LoanRepository
+    loanRepository: LoanRepository,
+    dataStore: DataStore<Preferences>
 ) : ViewModel() {
 
-    val uiState: StateFlow<EmiCalendarUiState> = loanRepository.getAllLoans()
-        .map { loans ->
-            val occurrences = EmiOccurrenceGenerator.forActiveLoans(loans)
-            EmiCalendarUiState(
-                occurrencesByDay = occurrences.groupBy { DayKey(it.year, it.month, it.day) },
-                isLoading = false
-            )
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EmiCalendarUiState())
+    private val KEY_HIDE_VALUES = booleanPreferencesKey("hide_values")
+    private val hideValuesFlow = dataStore.data.map { it[KEY_HIDE_VALUES] ?: false }
+
+    val uiState: StateFlow<EmiCalendarUiState> = combine(
+        loanRepository.getAllLoans(),
+        hideValuesFlow
+    ) { loans, hide ->
+        val occurrences = EmiOccurrenceGenerator.forActiveLoans(loans)
+        EmiCalendarUiState(
+            occurrencesByDay = occurrences.groupBy { DayKey(it.year, it.month, it.day) },
+            hideValues = hide,
+            isLoading = false
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EmiCalendarUiState())
 }

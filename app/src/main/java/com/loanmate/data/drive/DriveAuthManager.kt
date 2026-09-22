@@ -38,7 +38,10 @@ class DriveAuthManager @Inject constructor(
     private val gso: GoogleSignInOptions by lazy {
         val builder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
-            .requestScopes(Scope(DriveScopes.DRIVE_APPDATA))
+            .requestScopes(
+                Scope(DriveScopes.DRIVE_APPDATA),
+                Scope(DriveScopes.DRIVE_FILE)
+            )
         if (isConfigured) {
             builder.requestIdToken(BuildConfig.GOOGLE_OAUTH_WEB_CLIENT_ID)
         }

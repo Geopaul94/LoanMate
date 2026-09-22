@@ -3,8 +3,8 @@ package com.loanmate.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.loanmate.data.drive.ProductionBackupManager
 import com.loanmate.data.repository.LoanRepository
-import com.loanmate.utils.BackupManager
 import com.loanmate.utils.PdfExporter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,7 +23,7 @@ sealed class BackupEvent {
 
 @HiltViewModel
 class BackupViewModel @Inject constructor(
-    private val backupManager: BackupManager,
+    private val productionBackup: ProductionBackupManager,
     private val loanRepository: LoanRepository
 ) : ViewModel() {
 
@@ -60,28 +60,22 @@ class BackupViewModel @Inject constructor(
     fun exportBackup(context: Context) {
         viewModelScope.launch {
             try {
-                val result = backupManager.export(context)
-                _events.emit(
-                    BackupEvent.Toast(
-                        "Backup saved · ${result.loanCount} loans, ${result.paymentCount} payments"
-                    )
-                )
-                _events.emit(BackupEvent.ShareBackup(authority(context), result.file))
+                val file = productionBackup.prepareBackupPackage()
+                _events.emit(BackupEvent.Toast("Backup package created successfully"))
+                _events.emit(BackupEvent.ShareBackup(authority(context), file))
             } catch (e: Exception) {
                 _events.emit(BackupEvent.Toast("Backup failed: ${e.message ?: "unknown"}"))
             }
         }
     }
 
-    fun restoreBackup(jsonText: String) {
+    fun restoreBackup(zipFile: File) {
         viewModelScope.launch {
-            when (val outcome = backupManager.restore(jsonText)) {
-                is BackupManager.RestoreOutcome.Success -> _events.emit(
-                    BackupEvent.Toast(
-                        "Restored · ${outcome.loanCount} loans, ${outcome.paymentCount} payments"
-                    )
-                )
-                is BackupManager.RestoreOutcome.Failure -> _events.emit(BackupEvent.Toast(outcome.reason))
+            try {
+                productionBackup.restoreFromPackage(zipFile)
+                _events.emit(BackupEvent.Toast("Data restored successfully!"))
+            } catch (e: Exception) {
+                _events.emit(BackupEvent.Toast("Restore failed: ${e.message ?: "unknown"}"))
             }
         }
     }

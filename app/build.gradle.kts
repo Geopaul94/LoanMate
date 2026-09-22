@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 // Load secrets from local.properties (gitignored).
@@ -35,8 +36,8 @@ android {
         applicationId = "com.geo.loanmate"
         minSdk = 28
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 6
+        versionName = "1.0.5"
 
         buildConfigField("String", "GOOGLE_OAUTH_WEB_CLIENT_ID",
             "\"$googleOauthWebClientId\"")
@@ -46,8 +47,8 @@ android {
         create("release") {
             if (hasReleaseKeystore) {
                 // storeFile is an absolute path (the upload keystore lives
-                // outside the repo, at C:\Users\geopa\<appname>-upload.jks).
-                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                // outside the repo, at D:\PlayStoreBackups\loanmate_drive_playstore_backup\loanmate-upload.jks).
+                storeFile = file(keystoreProps.getProperty("storeFile"))
                 storePassword = keystoreProps.getProperty("storePassword")
                 keyAlias = keystoreProps.getProperty("keyAlias")
                 keyPassword = keystoreProps.getProperty("keyPassword")
@@ -108,6 +109,7 @@ dependencies {
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.kotlinx.serialization.json)
 
     // Compose
     implementation(platform(libs.compose.bom))

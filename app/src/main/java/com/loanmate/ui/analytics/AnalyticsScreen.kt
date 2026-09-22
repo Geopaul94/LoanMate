@@ -44,7 +44,14 @@ fun AnalyticsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Analytics", fontWeight = FontWeight.Bold) })
+            TopAppBar(
+                title = { Text("Analytics", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
         }
     ) { padding ->
         LazyColumn(
@@ -107,7 +114,7 @@ private fun OverviewHeroSection(uiState: com.loanmate.viewmodel.AnalyticsUiState
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                     )
                     Text(
-                        CurrencyUtils.format(uiState.totalOutstanding),
+                        CurrencyUtils.format(uiState.totalOutstanding, uiState.hideValues),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onPrimary
@@ -119,11 +126,11 @@ private fun OverviewHeroSection(uiState: com.loanmate.viewmodel.AnalyticsUiState
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
                         Text("Borrowed", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
-                        Text(CurrencyUtils.format(uiState.totalPrincipal), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
+                        Text(CurrencyUtils.format(uiState.totalPrincipal, uiState.hideValues), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("Paid Back", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
-                        Text(CurrencyUtils.format(uiState.totalPaid), style = MaterialTheme.typography.titleMedium, color = SuccessGreen, fontWeight = FontWeight.Bold)
+                        Text(CurrencyUtils.format(uiState.totalPaid, uiState.hideValues), style = MaterialTheme.typography.titleMedium, color = SuccessGreen, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -232,7 +239,7 @@ private fun MonthlyEmiSection(uiState: com.loanmate.viewmodel.AnalyticsUiState) 
                             Text(loan.bankName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(
-                            CurrencyUtils.format(loan.monthlyEmi),
+                            CurrencyUtils.format(loan.monthlyEmi, uiState.hideValues),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary

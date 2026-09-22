@@ -90,6 +90,23 @@ fun DashboardScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "LoanMate",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                actions = {
+                    IconButton(onClick = onSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddLoan,
@@ -109,7 +126,18 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             item {
-                DashboardHeader()
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "${DateUtils.getGreeting()}, 👋",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Small payments today create big freedom tomorrow.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (uiState.currentStreak > 0 || uiState.longestStreak > 0) {
@@ -207,6 +235,7 @@ fun DashboardScreen(
                 items(activeLoans, key = { it.id }) { loan ->
                     PremiumLoanCard(
                         loan = loan,
+                        hideValues = uiState.hideValues,
                         onClick = { onLoanClick(loan.id) }
                     )
                 }
@@ -222,7 +251,11 @@ fun DashboardScreen(
                     )
                 }
                 items(completedLoans, key = { "completed_${it.id}" }) { loan ->
-                    PremiumLoanCard(loan = loan, onClick = { onLoanClick(loan.id) })
+                    PremiumLoanCard(
+                        loan = loan,
+                        hideValues = uiState.hideValues,
+                        onClick = { onLoanClick(loan.id) }
+                    )
                 }
             }
 
@@ -292,7 +325,11 @@ private fun PremiumDebtFreeCard(debtFreeDateMs: Long) {
 }
 
 @Composable
-private fun PremiumLoanCard(loan: com.loanmate.data.local.LoanEntity, onClick: () -> Unit) {
+private fun PremiumLoanCard(
+    loan: com.loanmate.data.local.LoanEntity,
+    hideValues: Boolean,
+    onClick: () -> Unit
+) {
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(24.dp),
@@ -322,7 +359,7 @@ private fun PremiumLoanCard(loan: com.loanmate.data.local.LoanEntity, onClick: (
             
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    CurrencyUtils.formatShort(loan.outstandingAmount),
+                    CurrencyUtils.formatShort(loan.outstandingAmount, hideValues),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary
@@ -342,7 +379,7 @@ private fun SummarySection(uiState: com.loanmate.viewmodel.DashboardUiState) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         PremiumSummaryCard(
             title = "Outstanding",
-            value = CurrencyUtils.formatShort(uiState.totalOutstanding),
+            value = CurrencyUtils.formatShort(uiState.totalOutstanding, uiState.hideValues),
             icon = Icons.Default.Payments,
             modifier = Modifier.weight(1f),
             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
@@ -350,7 +387,7 @@ private fun SummarySection(uiState: com.loanmate.viewmodel.DashboardUiState) {
         )
         PremiumSummaryCard(
             title = "Monthly EMI",
-            value = CurrencyUtils.formatShort(uiState.totalMonthlyEmi),
+            value = CurrencyUtils.formatShort(uiState.totalMonthlyEmi, uiState.hideValues),
             icon = Icons.Default.EventRepeat,
             modifier = Modifier.weight(1f),
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
@@ -380,22 +417,6 @@ private fun PremiumSummaryCard(
                 Text(title, style = MaterialTheme.typography.labelMedium, color = contentColor.copy(alpha = 0.7f))
             }
         }
-    }
-}
-
-@Composable
-private fun DashboardHeader() {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "${DateUtils.getGreeting()}, 👋",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "Small payments today create big freedom tomorrow.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

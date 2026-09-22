@@ -50,7 +50,12 @@ fun EmiCalendarScreen(
     Scaffold(
         topBar = { 
             TopAppBar(
-                title = { Text("EMI Calendar", fontWeight = FontWeight.Bold) }
+                title = { Text("EMI Calendar", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
             ) 
         }
     ) { padding ->
@@ -91,7 +96,12 @@ fun EmiCalendarScreen(
             if (selected != null) {
                 val list = uiState.occurrencesByDay[selected].orEmpty()
                 if (list.isNotEmpty()) {
-                    DaySection(day = selected, occurrences = list, onClose = { selectedDay = null })
+                    DaySection(
+                        day = selected,
+                        occurrences = list,
+                        hideValues = uiState.hideValues,
+                        onClose = { selectedDay = null }
+                    )
                 }
             } else if (uiState.occurrencesByDay.isEmpty() && !uiState.isLoading) {
                 com.loanmate.ui.components.EmptyState(
@@ -228,6 +238,7 @@ private fun DayCell(
 private fun DaySection(
     day: DayKey,
     occurrences: List<EmiOccurrenceGenerator.Occurrence>,
+    hideValues: Boolean,
     onClose: () -> Unit
 ) {
     val cal = Calendar.getInstance().apply { set(day.year, day.month, day.day) }
@@ -245,7 +256,7 @@ private fun DaySection(
                 Column {
                     Text(dateLabel, style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold)
-                    Text("Total due: ${CurrencyUtils.format(total)}",
+                    Text("Total due: ${CurrencyUtils.format(total, hideValues)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold)
@@ -277,7 +288,7 @@ private fun DaySection(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Text(CurrencyUtils.format(occ.amount),
+                        Text(CurrencyUtils.format(occ.amount, hideValues),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary)

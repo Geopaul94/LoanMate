@@ -22,7 +22,7 @@ import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.PrepaymentCalculator
 
 @Composable
-fun PrepaymentTab(loan: LoanEntity) {
+fun PrepaymentTab(loan: LoanEntity, hideValues: Boolean = false) {
     var prepaymentValue by rememberSaveable { mutableStateOf(0f) }
     var mode by rememberSaveable { mutableStateOf(PrepaymentCalculator.Mode.REDUCE_TENURE) }
     val remainingMonths = (loan.totalEmis - loan.completedEmis).coerceAtLeast(0)
@@ -100,7 +100,7 @@ fun PrepaymentTab(loan: LoanEntity) {
             )
         }
 
-        result?.let { PremiumResultCard(it, prepayment, loan.monthlyEmi) }
+        result?.let { PremiumResultCard(it, prepayment, loan.monthlyEmi, hideValues) }
     }
 }
 
@@ -178,7 +178,7 @@ private fun SuggestChip(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PremiumResultCard(result: PrepaymentCalculator.Result, prepayment: Double, currentEmi: Double) {
+private fun PremiumResultCard(result: PrepaymentCalculator.Result, prepayment: Double, currentEmi: Double, hideValues: Boolean) {
     Card(
         shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -206,9 +206,9 @@ private fun PremiumResultCard(result: PrepaymentCalculator.Result, prepayment: D
                         ImpactRow("New End Date", "${result.newRemainingMonths} months left", MaterialTheme.colorScheme.onSecondaryContainer)
                     }
                     PrepaymentCalculator.Mode.REDUCE_EMI -> {
-                        ImpactRow("EMI Reduction", CurrencyUtils.format(currentEmi - result.newEmi), MaterialTheme.colorScheme.primary)
-                        ImpactRow("New Monthly EMI", CurrencyUtils.format(result.newEmi), com.loanmate.ui.theme.SuccessGreen)
-                        ImpactRow("Total Benefit", CurrencyUtils.format(result.totalSavings), MaterialTheme.colorScheme.onSecondaryContainer)
+                        ImpactRow("EMI Reduction", CurrencyUtils.format(currentEmi - result.newEmi, hideValues), MaterialTheme.colorScheme.primary)
+                        ImpactRow("New Monthly EMI", CurrencyUtils.format(result.newEmi, hideValues), com.loanmate.ui.theme.SuccessGreen)
+                        ImpactRow("Total Benefit", CurrencyUtils.format(result.totalSavings, hideValues), MaterialTheme.colorScheme.onSecondaryContainer)
                     }
                 }
             }
@@ -221,7 +221,7 @@ private fun PremiumResultCard(result: PrepaymentCalculator.Result, prepayment: D
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "By paying ${CurrencyUtils.format(prepayment)} now, you effectively save ${CurrencyUtils.format(result.totalSavings)} over the remaining loan period.",
+                    text = "By paying ${CurrencyUtils.format(prepayment, hideValues)} now, you effectively save ${CurrencyUtils.format(result.totalSavings, hideValues)} over the remaining loan period.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     fontWeight = FontWeight.Medium

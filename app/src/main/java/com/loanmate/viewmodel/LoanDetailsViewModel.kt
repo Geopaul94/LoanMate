@@ -1,5 +1,8 @@
 package com.loanmate.viewmodel
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.loanmate.data.local.LoanEntity
@@ -21,15 +24,20 @@ data class LoanDetailsUiState(
     val isLoading: Boolean = true,
     val milestoneMessage: String? = null,
     val showMilestone: Boolean = false,
-    val showCelebration: Boolean = false
+    val showCelebration: Boolean = false,
+    val hideValues: Boolean = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LoanDetailsViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
-    private val paymentRepository: PaymentRepository
+    private val paymentRepository: PaymentRepository,
+    dataStore: DataStore<Preferences>
 ) : ViewModel() {
+
+    private val KEY_HIDE_VALUES = booleanPreferencesKey("hide_values")
+    private val hideValuesFlow = dataStore.data.map { it[KEY_HIDE_VALUES] ?: false }
 
     private val _loanId = MutableStateFlow<Long?>(null)
     private val _milestone = MutableStateFlow<String?>(null)
@@ -46,17 +54,20 @@ class LoanDetailsViewModel @Inject constructor(
             combine(
                 loanRepository.getLoanById(id),
                 paymentRepository.getPaymentsByLoanId(id),
-                _milestone,
-                _showMilestone,
-                _showCelebration
-            ) { loan, payments, milestone, showMilestone, showCelebration ->
+                combine(_milestone, _showMilestone, _showCelebration, hideValuesFlow) { m, sm, sc, h ->
+                    Triple(m, sm, Pair(sc, h))
+                }
+            ) { loan, payments, extra ->
+                val (milestone, showMilestone, secondPair) = extra
+                val (showCelebration, hide) = secondPair
                 LoanDetailsUiState(
                     loan = loan,
                     payments = payments,
                     isLoading = false,
                     milestoneMessage = milestone,
                     showMilestone = showMilestone,
-                    showCelebration = showCelebration
+                    showCelebration = showCelebration,
+                    hideValues = hide
                 )
             }
         }

@@ -3,7 +3,7 @@ package com.loanmate.data.drive
 import android.content.Context
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.http.ByteArrayContent
+import com.google.api.client.http.FileContent
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive
@@ -12,14 +12,14 @@ import com.google.api.services.drive.model.File as DriveFile
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
+import java.io.File as LocalFile
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Wraps the Drive REST API for the `appDataFolder` scope.
+ * Wraps the Drive REST API for the `drive.file` scope.
  * Every method must be called off the main thread.
- * Files live in the app's hidden data folder — invisible in Drive's web UI.
  */
 @Singleton
 class DriveBackupRepository @Inject constructor(
@@ -27,17 +27,18 @@ class DriveBackupRepository @Inject constructor(
 ) {
 
     companion object {
-        private const val APP_DATA_FOLDER = "appDataFolder"
-        private const val MIME_JSON = "application/json"
+        private const val MIME_ZIP = "application/zip"
         private const val APP_NAME = "LoanMate"
-        const val MAX_KEPT_BACKUPS = 5
+        private const val FIXED_BACKUP_NAME = "loanmate_backup.zip"
+        private const val PREVIOUS_BACKUP_NAME = "loanmate_backup_previous.zip"
     }
 
     data class RemoteBackup(
         val id: String,
         val name: String,
         val modifiedTimeMs: Long,
-        val sizeBytes: Long
+        val sizeBytes: Long,
+        val entryCount: Int? = null
     )
 
     sealed class Outcome<out T> {
@@ -47,7 +48,7 @@ class DriveBackupRepository @Inject constructor(
 
     private fun driveService(account: GoogleSignInAccount): Drive {
         val credential = GoogleAccountCredential.usingOAuth2(
-            context, listOf(DriveScopes.DRIVE_APPDATA)
+            context, listOf(DriveScopes.DRIVE_FILE)
         ).apply { selectedAccount = account.account }
 
         return Drive.Builder(
@@ -57,26 +58,81 @@ class DriveBackupRepository @Inject constructor(
         ).setApplicationName(APP_NAME).build()
     }
 
-    suspend fun upload(account: GoogleSignInAccount, fileName: String, jsonBytes: ByteArray):
+    private suspend fun getOrCreateBackupFolder(service: Drive): String = withContext(Dispatchers.IO) {
+        val folderName = "loanmate backupfile"
+        val query = "name = '$folderName' and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        val result = service.files().list()
+            .setQ(query)
+            .setSpaces("drive")
+            .setFields("files(id)")
+            .execute()
+
+        val existingId = result.files.firstOrNull()?.id
+        if (existingId != null) return@withContext existingId
+
+        val metadata = DriveFile().apply {
+            name = folderName
+            mimeType = "application/vnd.google-apps.folder"
+        }
+        val created = service.files().create(metadata)
+            .setFields("id")
+            .execute()
+        created.id
+    }
+
+    suspend fun upload(account: GoogleSignInAccount, localFile: LocalFile, entryCount: Int):
             Outcome<RemoteBackup> = withContext(Dispatchers.IO) {
         try {
             val service = driveService(account)
-            val metadata = DriveFile().apply {
-                name = fileName
-                parents = listOf(APP_DATA_FOLDER)
-                mimeType = MIME_JSON
+            val folderId = getOrCreateBackupFolder(service)
+
+            // 1. Find existing backup
+            val query = "name = '$FIXED_BACKUP_NAME' and '$folderId' in parents and trashed = false"
+            val existing = service.files().list().setQ(query).setFields("files(id)").execute().files.orEmpty()
+            
+            // 2. Rollback protection: move current to previous
+            if (existing.isNotEmpty()) {
+                val currentId = existing.first().id
+                
+                // Delete any old previous backup
+                val prevQuery = "name = '$PREVIOUS_BACKUP_NAME' and '$folderId' in parents and trashed = false"
+                service.files().list().setQ(prevQuery).setFields("files(id)").execute().files?.forEach { 
+                    service.files().delete(it.id).execute()
+                }
+
+                // Copy current to previous
+                val copyMeta = DriveFile().apply {
+                    name = PREVIOUS_BACKUP_NAME
+                    parents = listOf(folderId)
+                }
+                service.files().copy(currentId, copyMeta).execute()
             }
-            val content = ByteArrayContent(MIME_JSON, jsonBytes)
-            val created = service.files().create(metadata, content)
-                .setFields("id, name, modifiedTime, size")
-                .execute()
-            pruneOldBackups(service)
+
+            // 3. Upload new backup (replace or create)
+            val metadata = DriveFile().apply {
+                name = FIXED_BACKUP_NAME
+                parents = if (existing.isEmpty()) listOf(folderId) else null
+                appProperties = mapOf("entryCount" to entryCount.toString())
+            }
+            
+            val content = FileContent(MIME_ZIP, localFile)
+            val result = if (existing.isNotEmpty()) {
+                service.files().update(existing.first().id, metadata, content)
+                    .setFields("id, name, modifiedTime, size, appProperties")
+                    .execute()
+            } else {
+                service.files().create(metadata, content)
+                    .setFields("id, name, modifiedTime, size, appProperties")
+                    .execute()
+            }
+
             Outcome.Success(
                 RemoteBackup(
-                    id = created.id,
-                    name = created.name,
-                    modifiedTimeMs = created.modifiedTime?.value ?: System.currentTimeMillis(),
-                    sizeBytes = created.getSize() ?: 0L
+                    id = result.id,
+                    name = result.name,
+                    modifiedTimeMs = result.modifiedTime?.value ?: System.currentTimeMillis(),
+                    sizeBytes = result.getSize() ?: 0L,
+                    entryCount = result.appProperties?.get("entryCount")?.toIntOrNull()
                 )
             )
         } catch (e: Exception) {
@@ -88,18 +144,22 @@ class DriveBackupRepository @Inject constructor(
             Outcome<List<RemoteBackup>> = withContext(Dispatchers.IO) {
         try {
             val service = driveService(account)
+            val folderId = getOrCreateBackupFolder(service)
+            
             val result = service.files().list()
-                .setSpaces(APP_DATA_FOLDER)
-                .setFields("files(id, name, modifiedTime, size)")
+                .setQ("'$folderId' in parents and trashed = false")
+                .setSpaces("drive")
+                .setFields("files(id, name, modifiedTime, size, appProperties)")
                 .setOrderBy("modifiedTime desc")
-                .setPageSize(20)
                 .execute()
+            
             val backups = result.files.orEmpty().map { f ->
                 RemoteBackup(
                     id = f.id,
                     name = f.name ?: "(untitled)",
                     modifiedTimeMs = f.modifiedTime?.value ?: 0L,
-                    sizeBytes = f.getSize() ?: 0L
+                    sizeBytes = f.getSize() ?: 0L,
+                    entryCount = f.appProperties?.get("entryCount")?.toIntOrNull()
                 )
             }
             Outcome.Success(backups)
@@ -109,30 +169,16 @@ class DriveBackupRepository @Inject constructor(
     }
 
     suspend fun download(account: GoogleSignInAccount, fileId: String):
-            Outcome<String> = withContext(Dispatchers.IO) {
+            Outcome<LocalFile> = withContext(Dispatchers.IO) {
         try {
             val service = driveService(account)
-            val out = ByteArrayOutputStream()
-            service.files().get(fileId).executeMediaAndDownloadTo(out)
-            Outcome.Success(out.toString("UTF-8"))
+            val tempFile = LocalFile(context.cacheDir, "downloaded_backup.zip")
+            FileOutputStream(tempFile).use { output ->
+                service.files().get(fileId).executeMediaAndDownloadTo(output)
+            }
+            Outcome.Success(tempFile)
         } catch (e: Exception) {
             Outcome.Failure(e.message ?: e.javaClass.simpleName)
-        }
-    }
-
-    private fun pruneOldBackups(service: Drive) {
-        try {
-            val all = service.files().list()
-                .setSpaces(APP_DATA_FOLDER)
-                .setFields("files(id, modifiedTime)")
-                .setOrderBy("modifiedTime desc")
-                .execute()
-                .files.orEmpty()
-            all.drop(MAX_KEPT_BACKUPS).forEach { stale ->
-                runCatching { service.files().delete(stale.id).execute() }
-            }
-        } catch (_: Exception) {
-            // pruning is best-effort; don't fail the upload over it
         }
     }
 }

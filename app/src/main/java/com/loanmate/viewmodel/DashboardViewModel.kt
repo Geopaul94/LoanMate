@@ -1,5 +1,8 @@
 package com.loanmate.viewmodel
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.loanmate.data.local.LoanEntity
@@ -25,6 +28,7 @@ data class DashboardUiState(
     val currentStreak: Int = 0,
     val longestStreak: Int = 0,
     val prepaymentInsight: PrepaymentInsight? = null,
+    val hideValues: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -38,8 +42,12 @@ data class PrepaymentInsight(
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
-    paymentRepository: PaymentRepository
+    paymentRepository: PaymentRepository,
+    dataStore: DataStore<Preferences>
 ) : ViewModel() {
+
+    private val KEY_HIDE_VALUES = booleanPreferencesKey("hide_values")
+    private val hideValuesFlow = dataStore.data.map { it[KEY_HIDE_VALUES] ?: false }
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
@@ -60,8 +68,9 @@ class DashboardViewModel @Inject constructor(
         loanRepository.getAllLoans(),
         summaryFlow,
         _searchQuery,
-        _extraAmount
-    ) { loans, summary, query, manualExtra ->
+        _extraAmount,
+        hideValuesFlow
+    ) { loans, summary, query, manualExtra, hide ->
         val filtered = if (query.isBlank()) loans
         else loans.filter {
             it.loanName.contains(query, ignoreCase = true) ||
@@ -104,6 +113,7 @@ class DashboardViewModel @Inject constructor(
             currentStreak = summary.currentStreak,
             longestStreak = summary.longestStreak,
             prepaymentInsight = insight,
+            hideValues = hide,
             isLoading = false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardUiState())

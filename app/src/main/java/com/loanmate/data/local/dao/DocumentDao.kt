@@ -13,6 +13,12 @@ interface DocumentDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDocument(document: DocumentEntity): Long
 
+    @Query("SELECT * FROM documents")
+    suspend fun getAllDocumentsOnce(): List<DocumentEntity>
+
+    @Query("DELETE FROM documents")
+    suspend fun deleteAllDocuments()
+
     @Delete
     suspend fun deleteDocument(document: DocumentEntity)
 }

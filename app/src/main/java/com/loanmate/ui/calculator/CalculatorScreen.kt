@@ -25,7 +25,7 @@ fun CalculatorScreen(
     onBack: () -> Unit,
     viewModel: CalculatorViewModel = hiltViewModel()
 ) {
-    val loan by viewModel.loan.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(loanId) { viewModel.loadLoan(loanId) }
 
@@ -54,18 +54,18 @@ fun CalculatorScreen(
                     )
                 }
             }
-            val currentLoan = loan
+            val currentLoan = uiState.loan
             if (currentLoan == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp)) {
-                    LoanContextCard(currentLoan)
+                    LoanContextCard(currentLoan, uiState.hideValues)
                     Spacer(Modifier.height(16.dp))
                     when (selectedTab) {
-                        0 -> PrepaymentTab(currentLoan)
-                        1 -> ForeclosureTab(currentLoan)
+                        0 -> PrepaymentTab(currentLoan, uiState.hideValues)
+                        1 -> ForeclosureTab(currentLoan, uiState.hideValues)
                     }
                 }
             }
@@ -139,7 +139,7 @@ internal fun ResultRow(label: String, value: String, isHighlight: Boolean = fals
 }
 
 @Composable
-private fun LoanContextCard(loan: LoanEntity) {
+private fun LoanContextCard(loan: LoanEntity, hideValues: Boolean) {
     val remainingMonths = (loan.totalEmis - loan.completedEmis).coerceAtLeast(0)
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -151,8 +151,8 @@ private fun LoanContextCard(loan: LoanEntity) {
             Text(loan.bankName, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
-            ResultRow("Outstanding", com.loanmate.utils.CurrencyUtils.format(loan.outstandingAmount))
-            ResultRow("Monthly EMI", com.loanmate.utils.CurrencyUtils.format(loan.monthlyEmi))
+            ResultRow("Outstanding", com.loanmate.utils.CurrencyUtils.format(loan.outstandingAmount, hideValues))
+            ResultRow("Monthly EMI", com.loanmate.utils.CurrencyUtils.format(loan.monthlyEmi, hideValues))
             ResultRow("Interest rate", "${loan.interestRate}% p.a.")
             ResultRow("Remaining EMIs", remainingMonths.toString())
         }

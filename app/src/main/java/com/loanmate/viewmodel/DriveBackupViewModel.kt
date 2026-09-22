@@ -1,13 +1,13 @@
 package com.loanmate.viewmodel
 
-import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.loanmate.data.drive.DriveAuthManager
 import com.loanmate.data.drive.DriveBackupRepository
 import com.loanmate.data.drive.DriveBackupRepository.Outcome
-import com.loanmate.utils.BackupManager
+import com.loanmate.data.drive.ProductionBackupManager
+import com.loanmate.data.local.LoanDatabase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,33 +20,43 @@ data class DriveUiState(
     val accountEmail: String? = null,
     val isBusy: Boolean = false,
     val backups: List<DriveBackupRepository.RemoteBackup> = emptyList(),
-    val lastError: String? = null
+    val lastError: String? = null,
+    val showShrinkWarning: ShrinkWarning? = null
+)
+
+data class ShrinkWarning(
+    val localCount: Int,
+    val remoteCount: Int,
+    val fileId: String? = null // if null, it's for the 'upload' action
 )
 
 @HiltViewModel
 class DriveBackupViewModel @Inject constructor(
     private val auth: DriveAuthManager,
     private val drive: DriveBackupRepository,
-    private val backupManager: BackupManager
+    private val productionBackup: ProductionBackupManager,
+    private val db: LoanDatabase
 ) : ViewModel() {
 
     private val _isBusy = MutableStateFlow(false)
     private val _backups = MutableStateFlow<List<DriveBackupRepository.RemoteBackup>>(emptyList())
     private val _lastError = MutableStateFlow<String?>(null)
+    private val _shrinkWarning = MutableStateFlow<ShrinkWarning?>(null)
 
     val uiState: StateFlow<DriveUiState> = combine(
-        auth.account, _isBusy, _backups, _lastError
-    ) { account, busy, backups, error ->
+        auth.account, _isBusy, _backups, _lastError, _shrinkWarning
+    ) { account, busy, backups, error, shrink ->
         DriveUiState(
             isConfigured = auth.isConfigured,
             accountEmail = account?.email,
             isBusy = busy,
             backups = backups,
-            lastError = error
+            lastError = error,
+            showShrinkWarning = shrink
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DriveUiState())
 
-    fun signInIntent(): Intent = auth.signInIntent()
+    fun signInIntent() = auth.signInIntent()
 
     fun handleSignInResult(data: Intent?) {
         val result = auth.onSignInResult(data)
@@ -65,7 +75,7 @@ class DriveBackupViewModel @Inject constructor(
         }
     }
 
-    fun backupNow(context: Context) {
+    fun backupNow(force: Boolean = false) {
         val account = auth.account.value ?: run {
             _lastError.value = "Sign in first"
             return
@@ -73,10 +83,29 @@ class DriveBackupViewModel @Inject constructor(
         viewModelScope.launch {
             _isBusy.value = true
             _lastError.value = null
+            _shrinkWarning.value = null
             try {
-                val local = backupManager.export(context)
-                val json = local.file.readBytes()
-                when (val result = drive.upload(account, local.file.name, json)) {
+                val localCount = db.loanDao().getAllLoansOnce().size
+                if (localCount == 0) {
+                    _lastError.value = "Cannot backup empty data"
+                    return@launch
+                }
+
+                if (!force) {
+                    when (val result = drive.listBackups(account)) {
+                        is Outcome.Success -> {
+                            val latest = result.value.firstOrNull()
+                            if (latest != null && latest.entryCount != null && latest.entryCount > localCount) {
+                                _shrinkWarning.value = ShrinkWarning(localCount, latest.entryCount)
+                                return@launch
+                            }
+                        }
+                        else -> { /* proceed if list fails */ }
+                    }
+                }
+
+                val backupFile = productionBackup.prepareBackupPackage()
+                when (val result = drive.upload(account, backupFile, localCount)) {
                     is Outcome.Success -> refreshBackups()
                     is Outcome.Failure -> _lastError.value = "Drive upload: ${result.reason}"
                 }
@@ -84,6 +113,10 @@ class DriveBackupViewModel @Inject constructor(
                 _isBusy.value = false
             }
         }
+    }
+
+    fun dismissShrinkWarning() {
+        _shrinkWarning.value = null
     }
 
     fun refreshBackups() {
@@ -106,11 +139,8 @@ class DriveBackupViewModel @Inject constructor(
             try {
                 when (val result = drive.download(account, fileId)) {
                     is Outcome.Success -> {
-                        when (val outcome = backupManager.restore(result.value)) {
-                            is BackupManager.RestoreOutcome.Failure ->
-                                _lastError.value = outcome.reason
-                            is BackupManager.RestoreOutcome.Success -> { /* snackbar handled by collector */ }
-                        }
+                        productionBackup.restoreFromPackage(result.value)
+                        _lastError.value = "Restore successful!"
                     }
                     is Outcome.Failure -> _lastError.value = "Download: ${result.reason}"
                 }

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -26,12 +28,7 @@ import com.loanmate.viewmodel.BackupEvent
 import com.loanmate.viewmodel.BackupViewModel
 import com.loanmate.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
-
-import androidx.compose.ui.draw.scale
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,17 +41,27 @@ fun SettingsScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var pendingRestoreConfirm by remember { mutableStateOf<Uri?>(null) }
+    var pendingRestoreConfirm by remember { mutableStateOf<File?>(null) }
 
     val restorePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
-    ) { uri -> if (uri != null) pendingRestoreConfirm = uri }
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val tempFile = File(context.cacheDir, "temp_restore.zip")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tempFile.outputStream().use { input.copyTo(it) }
+                }
+                pendingRestoreConfirm = tempFile
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         backupViewModel.events.collect { event ->
             when (event) {
                 is BackupEvent.SharePdf -> shareFile(context, event.authority, event.file, "application/pdf")
-                is BackupEvent.ShareBackup -> shareFile(context, event.authority, event.file, "application/json")
+                is BackupEvent.ShareBackup -> shareFile(context, event.authority, event.file, "application/zip")
                 is BackupEvent.Toast -> snackbarHostState.showSnackbar(event.message)
             }
         }
@@ -62,7 +69,16 @@ fun SettingsScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { TopAppBar(title = { Text("Settings", fontWeight = FontWeight.Bold) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
@@ -97,12 +113,12 @@ fun SettingsScreen(
                         backupViewModel.exportPdf(context)
                     }
                     ActionRow(Icons.Default.CloudUpload, "Cloud Backup",
-                        "Save loans + payments to JSON") {
+                        "Save loans, payments & documents to ZIP") {
                         backupViewModel.exportBackup(context)
                     }
                     ActionRow(Icons.Default.CloudDownload, "Restore Backup",
-                        "Restore from a JSON file") {
-                        restorePicker.launch(arrayOf("application/json", "*/*"))
+                        "Restore from a ZIP file") {
+                        restorePicker.launch(arrayOf("application/zip", "*/*"))
                     }
                 }
             }
@@ -179,19 +195,15 @@ fun SettingsScreen(
         }
     }
 
-    pendingRestoreConfirm?.let { uri ->
+    pendingRestoreConfirm?.let { file ->
         AlertDialog(
             onDismissRequest = { pendingRestoreConfirm = null },
             title = { Text("Restore from backup?") },
-            text = { Text("This will replace all current loans, payments, and achievements. This cannot be undone.") },
+            text = { Text("This will replace all current loans, payments, and documents. This cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = {
                     pendingRestoreConfirm = null
-                    scope.launch {
-                        val text = readUriAsText(context, uri)
-                        if (text != null) backupViewModel.restoreBackup(text)
-                        else snackbarHostState.showSnackbar("Could not read backup file")
-                    }
+                    backupViewModel.restoreBackup(file)
                 }) { Text("Restore", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
@@ -283,7 +295,7 @@ private fun ActionRow(icon: ImageVector, title: String, subtitle: String, onClic
     }
 }
 
-private fun shareFile(context: android.content.Context, authority: String, file: java.io.File, mime: String) {
+private fun shareFile(context: android.content.Context, authority: String, file: File, mime: String) {
     val uri = FileProvider.getUriForFile(context, authority, file)
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = mime
@@ -295,9 +307,4 @@ private fun shareFile(context: android.content.Context, authority: String, file:
     })
 }
 
-private fun readUriAsText(context: android.content.Context, uri: Uri): String? {
-    return try {
-        context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-    } catch (e: Exception) { null }
-}
 

@@ -23,7 +23,7 @@ import com.loanmate.utils.CurrencyUtils
 import com.loanmate.utils.ForeclosureCalculator
 
 @Composable
-fun ForeclosureTab(loan: LoanEntity) {
+fun ForeclosureTab(loan: LoanEntity, hideValues: Boolean = false) {
     var chargePercentText by rememberSaveable { mutableStateOf("2") }
     val remainingMonths = (loan.totalEmis - loan.completedEmis).coerceAtLeast(0)
     val chargePercent = chargePercentText.toDoubleOrNull()?.coerceIn(0.0, 100.0) ?: 0.0
@@ -77,9 +77,9 @@ fun ForeclosureTab(loan: LoanEntity) {
             }
         }
 
-        VerdictHeroCard(result)
+        VerdictHeroCard(result, hideValues)
 
-        PremiumBreakdownCard(result)
+        PremiumBreakdownCard(result, hideValues)
 
         Text(
             text = "Note: Consider the opportunity cost. If you can invest this lump sum at a rate higher than your loan's interest, investing might be better than foreclosing.",
@@ -91,7 +91,7 @@ fun ForeclosureTab(loan: LoanEntity) {
 }
 
 @Composable
-private fun VerdictHeroCard(result: ForeclosureCalculator.Result) {
+private fun VerdictHeroCard(result: ForeclosureCalculator.Result, hideValues: Boolean) {
     val isWorth = result.isWorthIt
     val primaryColor = if (isWorth) com.loanmate.ui.theme.SuccessGreen else MaterialTheme.colorScheme.error
     
@@ -146,7 +146,7 @@ private fun VerdictHeroCard(result: ForeclosureCalculator.Result) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text("Total Savings", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
-                        Text(CurrencyUtils.format(result.netBenefit), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = Color.White)
+                        Text(CurrencyUtils.format(result.netBenefit, hideValues), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = Color.White)
                     }
                 }
             }
@@ -155,7 +155,7 @@ private fun VerdictHeroCard(result: ForeclosureCalculator.Result) {
 }
 
 @Composable
-private fun PremiumBreakdownCard(result: ForeclosureCalculator.Result) {
+private fun PremiumBreakdownCard(result: ForeclosureCalculator.Result, hideValues: Boolean) {
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -165,14 +165,14 @@ private fun PremiumBreakdownCard(result: ForeclosureCalculator.Result) {
             Text("Closing Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                BreakdownRow("Outstanding Principal", CurrencyUtils.format(result.outstanding))
-                BreakdownRow("Foreclosure Fees", "+ ${CurrencyUtils.format(result.foreclosureCharges)}", color = MaterialTheme.colorScheme.error)
+                BreakdownRow("Outstanding Principal", CurrencyUtils.format(result.outstanding, hideValues))
+                BreakdownRow("Foreclosure Fees", "+ ${CurrencyUtils.format(result.foreclosureCharges, hideValues)}", color = MaterialTheme.colorScheme.error)
                 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Total Closing Cost", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                    Text(CurrencyUtils.format(result.totalPayable), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                    Text(CurrencyUtils.format(result.totalPayable, hideValues), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                 }
             }
             
@@ -185,8 +185,8 @@ private fun PremiumBreakdownCard(result: ForeclosureCalculator.Result) {
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("If you don't close today:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    BreakdownRow("Future EMI Total", CurrencyUtils.format(result.futureTotalPayments), small = true)
-                    BreakdownRow("Avoidable Interest", CurrencyUtils.format(result.interestSaved), small = true, color = com.loanmate.ui.theme.SuccessGreen)
+                    BreakdownRow("Future EMI Total", CurrencyUtils.format(result.futureTotalPayments, hideValues), small = true)
+                    BreakdownRow("Avoidable Interest", CurrencyUtils.format(result.interestSaved, hideValues), small = true, color = com.loanmate.ui.theme.SuccessGreen)
                 }
             }
         }

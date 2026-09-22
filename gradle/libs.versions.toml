@@ -26,6 +26,7 @@ play-services-auth = "21.2.0"
 google-api-client = "2.7.0"
 google-api-services-drive = "v3-rev20240730-2.0.0"
 google-http-client-gson = "1.45.0"
+kotlinx-serialization-json = "1.7.3"
 junit = "4.13.2"
 mockito-kotlin = "5.4.0"
 coroutines-test = "1.8.1"
@@ -36,6 +37,7 @@ truth = "1.4.4"
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "core-splashscreen" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 
 # Compose BOM
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }

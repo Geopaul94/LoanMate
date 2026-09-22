@@ -15,7 +15,7 @@ Gemini CLI, Aider, Windsurf, Zed…). Read this file first, then `CLAUDE.md`.
 | **Package / applicationId** | `com.geo.loanmate` |
 | **Stack** | Kotlin + Jetpack Compose (Android only) |
 | **SDK levels** | compileSdk 36 · targetSdk 36 · minSdk 28 |
-| **Version** | 1.0.4 (versionCode 5) |
+| **Version** | 1.0.5 (versionCode 6) |
 | **Repo** | https://github.com/Geopaul94/LoanMate.git |
 | **Distribution** | Google Play — production quality from day one |
 | **Owner** | Geo Paulson · geopaul94@gmail.com |
@@ -46,6 +46,7 @@ Windows machine notes:
 
 - Design tokens only, from `Theme.kt` / `theme.dart`. **Never** hardcode `16.dp` or `Color(0xFF…)`.
 - Spacing 4/8/12/16/24/32/48 dp · Material 3 type scale · named color tokens · dark mode from day one.
+- Every screen ships a `TopAppBar` with a title and a back button if it's a child or detail screen.
 - Every screen ships 4 states: Loading (skeleton) / Empty (illustration + CTA) / Error (message + retry) / Success.
 - Motion 150–300 ms · touch targets ≥ 48 dp · ripple on every tap · haptics on destructive and confirm actions · respect insets.
 - Icons: Material Symbols. Consistent corner radius and elevation.
@@ -108,3 +109,12 @@ Windows machine notes:
   or resetting gradle.
 - Flag cross-module impact **before** changing it. On any doubt about architecture, naming or
   dependencies — ask, and recommend an option.
+
+## Google Drive Backup
+
+- **Automatic Sync**: The app triggers a background backup to Google Drive on every cold launch if
+  internet is available (`WorkManager` with `NetworkType.CONNECTED`).
+- **Folder Structure**: Backups are stored in a visible folder named `loanmate backupfile` on the
+  user's Google Drive. This requires `DRIVE_FILE` and `DRIVE_APPDATA` scopes.
+- **Retention**: Only the last 5 backups are kept in the Drive folder to save space.
+- **Format**: Plain JSON (schema versioned) as exported by `BackupManager`.

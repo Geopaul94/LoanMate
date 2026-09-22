@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,7 +27,6 @@ fun DriveBackupSection(
     onShowSnackbar: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     var pendingRestoreFileId by remember { mutableStateOf<String?>(null) }
 
     val signInLauncher = rememberLauncherForActivityResult(
@@ -60,7 +58,7 @@ fun DriveBackupSection(
 
             if (uiState.accountEmail == null) {
                 Text(
-                    "Sign in with Google to back up your data to your Drive's hidden app folder.",
+                    "Sign in with Google to back up your data to a visible folder named 'loanmate backupfile' in your Drive.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -89,7 +87,7 @@ fun DriveBackupSection(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = { viewModel.backupNow(context) },
+                        onClick = { viewModel.backupNow() },
                         enabled = !uiState.isBusy,
                         modifier = Modifier.weight(1f)
                     ) { Text(if (uiState.isBusy) "Working..." else "Backup now") }
@@ -110,12 +108,29 @@ fun DriveBackupSection(
                         BackupRow(
                             timeLabel = viewModel.formatBackupTime(backup.modifiedTimeMs),
                             sizeLabel = "${(backup.sizeBytes / 1024).coerceAtLeast(1)} KB",
+                            entryLabel = if (backup.entryCount != null) "${backup.entryCount} loans" else null,
                             onRestore = { pendingRestoreFileId = backup.id }
                         )
                     }
                 }
             }
         }
+    }
+
+    uiState.showShrinkWarning?.let { warning ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissShrinkWarning,
+            title = { Text("Replace larger backup?") },
+            text = { Text("The cloud backup has ${warning.remoteCount} loans, but this device only has ${warning.localCount}. Are you sure you want to replace it?") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.backupNow(force = true) }) {
+                    Text("Replace anyway", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissShrinkWarning) { Text("Cancel") }
+            }
+        )
     }
 
     pendingRestoreFileId?.let { fileId ->
@@ -137,13 +152,19 @@ fun DriveBackupSection(
 }
 
 @Composable
-private fun BackupRow(timeLabel: String, sizeLabel: String, onRestore: () -> Unit) {
+private fun BackupRow(timeLabel: String, sizeLabel: String, entryLabel: String?, onRestore: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(timeLabel, style = MaterialTheme.typography.bodyMedium)
-            Text(sizeLabel, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(sizeLabel, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                entryLabel?.let {
+                    Text("•", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
         TextButton(onClick = onRestore) {
             Icon(Icons.Default.Restore, null, modifier = Modifier.size(16.dp))
@@ -157,17 +178,17 @@ private fun BackupRow(timeLabel: String, sizeLabel: String, onRestore: () -> Uni
 private fun UnconfiguredCard() {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Google Drive sync",
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Google Drive Sync",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium)
+                fontWeight = FontWeight.Bold)
             Text(
-                text = "Drive sync needs a one-time Google Cloud setup. " +
-                       "See docs/SETUP_DRIVE.md in the project, add your OAuth web client ID " +
-                       "to local.properties (GOOGLE_OAUTH_WEB_CLIENT_ID=...), and rebuild.",
+                text = "Drive sync requires a one-time Google Cloud setup. " +
+                       "Please follow the guide in 'docs/SETUP_DRIVE.md' to add your OAuth client ID " +
+                       "to local.properties and rebuild the app.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

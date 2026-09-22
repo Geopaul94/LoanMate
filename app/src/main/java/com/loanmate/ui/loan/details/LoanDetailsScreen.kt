@@ -137,7 +137,7 @@ fun LoanDetailsScreen(
                 }
             }
 
-            item { PremiumLoanHero(loan = loan) }
+            item { PremiumLoanHero(loan = loan, hideValues = uiState.hideValues) }
 
             if (uiState.showCelebration) {
                 item {
@@ -187,7 +187,7 @@ fun LoanDetailsScreen(
                 }
             }
 
-            item { PremiumLoanStats(loan = loan) }
+            item { PremiumLoanStats(loan = loan, hideValues = uiState.hideValues) }
 
             item {
                 Text(
@@ -200,7 +200,7 @@ fun LoanDetailsScreen(
 
             if (uiState.payments.isNotEmpty()) {
                 items(uiState.payments.reversed(), key = { it.id }) { payment ->
-                    PremiumPaymentItem(payment = payment)
+                    PremiumPaymentItem(payment = payment, hideValues = uiState.hideValues)
                 }
             } else {
                 item {
@@ -344,7 +344,7 @@ private fun PremiumDocumentItem(
 }
 
 @Composable
-private fun PremiumLoanHero(loan: LoanEntity) {
+private fun PremiumLoanHero(loan: LoanEntity, hideValues: Boolean) {
     val progress = EmiCalculator.getProgressPercent(loan.completedEmis, loan.totalEmis) / 100f
     
     Card(
@@ -434,7 +434,7 @@ private fun PremiumLoanHero(loan: LoanEntity) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    HeroStat("Outstanding", CurrencyUtils.formatShort(loan.outstandingAmount))
+                    HeroStat("Outstanding", CurrencyUtils.formatShort(loan.outstandingAmount, hideValues))
                     HeroStat("EMIs Left", "${loan.totalEmis - loan.completedEmis}")
                     HeroStat("Rate", "${loan.interestRate}%")
                 }
@@ -452,20 +452,20 @@ private fun HeroStat(label: String, value: String) {
 }
 
 @Composable
-private fun PremiumLoanStats(loan: LoanEntity) {
+private fun PremiumLoanStats(loan: LoanEntity, hideValues: Boolean) {
     val nextDueDate = DateUtils.nextEmiDate(loan.firstEmiDate, loan.completedEmis)
     
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             StatCard(
                 label = "Monthly EMI",
-                value = CurrencyUtils.formatShort(loan.monthlyEmi),
+                value = CurrencyUtils.formatShort(loan.monthlyEmi, hideValues),
                 icon = Icons.Default.EventRepeat,
                 modifier = Modifier.weight(1f)
             )
             StatCard(
                 label = "Principal",
-                value = CurrencyUtils.formatShort(loan.principalAmount),
+                value = CurrencyUtils.formatShort(loan.principalAmount, hideValues),
                 icon = Icons.Default.AccountBalanceWallet,
                 modifier = Modifier.weight(1f)
             )
@@ -569,7 +569,7 @@ private fun DebtFreeCelebration(loanName: String, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun PremiumPaymentItem(payment: PaymentHistoryEntity) {
+private fun PremiumPaymentItem(payment: PaymentHistoryEntity, hideValues: Boolean) {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -606,13 +606,13 @@ private fun PremiumPaymentItem(payment: PaymentHistoryEntity) {
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    CurrencyUtils.format(payment.amountPaid),
+                    CurrencyUtils.format(payment.amountPaid, hideValues),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "Balance: ${CurrencyUtils.formatShort(payment.remainingBalance)}",
+                    "Balance: ${CurrencyUtils.formatShort(payment.remainingBalance, hideValues)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
